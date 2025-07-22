@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Live Incident Dashboard</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f7f7f7; }
+    h2 { margin-bottom: 15px; }
+    .controls {
+      display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px;
+    }
+    input, select, button {
+      padding: 7px; font-size: 14px;
+    }
+    button {
+      background-color: #007BFF; color: white; border: none; cursor: pointer;
+    }
+    button:hover { background-color: #0056b3; }
+    table { width: 100%; border-collapse: collapse; background: white; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+    th { background: #e0e0e0; position: sticky; top: 0; }
+    tr:hover { background-color: #f1f1f1; }
+    @media(max-width:600px) {
+      table, thead, tbody, th, td, tr { display: block; }
+      th, td { box-sizing: border-box; width: 100%; }
+      th { position: static; }
+    }
+  </style>
+</head>
+<body>
+<h2>🛠️ Live Incident Dashboard</h2>
+
+<div class="controls">
+  <input type="text" id="searchBox" placeholder="🔍 Search..." oninput="applyFilters()">
+  <select id="filterClassification" onchange="applyFilters()">
+    <option value="">All Classifications</option>
+  </select>
+  <select id="filterOutcome" onchange="applyFilters()">
+    <option value="">All Outcomes</option>
+  </select>
+  <select id="filterJob" onchange="applyFilters()">
+    <option value="">All Job #</option>
+  </select>
+  <button onclick="init()">🔄 Refresh Data</button>
+  <button onclick="exportCSV()">📥 Export CSV</button>
+</div>
+
+<table id="dataTable">
+  <thead></thead>
+  <tbody></tbody>
+</table>
+
+<script>
+  let fullData = [], currentHeaders = [];
+
+  function init() {
+    const url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQUvMV4tvUHnxdhRaAAmmdUpGIcNC4W4MAkbz1kOdXxtsE5813CGN-xiHyYdbmspRoRrWlCzeT6CIq2/pub?gid=551524865&single=true&output=csv&nocache=' + Date.now();
+    Papa.parse(url, {
+      download: true, header: true, skipEmptyLines: true,
+      complete: res => {
+        fullData = res.data;
+        currentHeaders = Object.keys(res.data[0] || {});
+        populateFilters();
+        renderTable(fullData);
+      },
+      error: () => alert('⚠️ Failed to load data.')
+    });
+  }
+
+  function populateFilters() {
+    const cSel = document.getElementById('filterClassification');
+    const oSel = document.getElementById('filterOutcome');
+    const jSel = document.getElementById('filterJob');
+    [cSel,oSel,jSel].forEach(el=>{ 
+      while(el.options.length>1) el.remove(1);
+    });
+    const seen = {c:new Set(),o:new Set(),j:new Set()};
+    fullData.forEach(r => {
+      if(r['INCIDENT CLASSIFICATION']) seen.c.add(r['INCIDENT CLASSIFICATION']);
+      if(r['INCIDENT OUTCOME']) seen.o.add(r['INCIDENT OUTCOME']);
+      if(r['JOB NAME / #']) seen.j.add(r['JOB NAME / #']);
+    });
+    for(const val of Array.from(seen.c).sort()) cSel.add(new Option(val,val));
+    for(const val of Array.from(seen.o).sort()) oSel.add(new Option(val,val));
+    for(const val of Array.from(seen.j).sort()) jSel.add(new Option(val,val));
+  }
+
+  function applyFilters() {
+    const txt = document.getElementById('searchBox').value.toLowerCase();
+    const cls = document.getElementById('filterClassification').value;
+    const out = document.getElementById('filterOutcome').value;
+    const job = document.getElementById('filterJob').value;
+    const filtered = fullData.filter(row => {
+      const rowText = JSON.stringify(Object.values(row)).toLowerCase();
+      return (!txt || rowText.includes(txt)) &&
+             (!cls || row['INCIDENT CLASSIFICATION'] === cls) &&
+             (!out || row['INCIDENT OUTCOME'] === out) &&
+             (!job || row['JOB NAME / #'] === job);
+    });
+    renderTable(filtered);
+  }
+
+  function renderTable(data) {
+    const t = document.getElementById('dataTable');
+    const th = t.querySelector('thead'), tb = t.querySelector('tbody');
+    th.innerHTML = tb.innerHTML = '';
+
+    const hRow = document.createElement('tr');
+    currentHeaders.forEach(h=> {
+      const cell=document.createElement('th');
+      cell.textContent=h;
+      hRow.appendChild(cell);
+    });
+    th.appendChild(hRow);
+
+    data.forEach(r => {
+      const tr = document.createElement('tr');
+      currentHeaders.forEach(h => {
+        const td = document.createElement('td');
+        td.textContent = r[h] || '';
+        tr.appendChild(td);
+      });
+      tb.appendChild(tr);
+    });
+  }
+
+  function exportCSV() {
+    const rows = [['"'+currentHeaders.join('","')+'"']];
+    document.querySelectorAll('#dataTable tbody tr').forEach(tr=>{
+      if(tr.style.display==='none') return;
+      const vals = Array.from(tr.children).map(td=>'""'+td.textContent.replace(/"/g,'""')+'""');
+      rows.push([vals.join(',')]);
+    });
+    const blob = new Blob([rows.join('\n')], {type: 'text/csv'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'incident-data.csv';
+    a.click();
+  }
+
+  window.addEventListener('DOMContentLoaded', init);
+</script>
+
+</body>
+</html>
