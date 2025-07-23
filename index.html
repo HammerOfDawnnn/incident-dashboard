@@ -89,22 +89,16 @@
   <div class="tab active" onclick="showTab('tab1')">📋 Incident Table</div>
   <div class="tab" onclick="showTab('tab2')">👷‍♂️ Man Hours</div>
   <div class="tab" onclick="showTab('tab3')">📈 Incident Rates</div>
-  <div class="tab" onclick="showTab('tab4')">📑 Summary Data</div>
+  <div class="tab" onclick="showTab('tab4')">📑 Summary Table</div>
 </div>
 
 <!-- Incident Table -->
 <div class="tab-content active" id="tab1">
   <div class="filters">
     <input type="text" id="searchBox" placeholder="Search..." oninput="applyFilters()">
-    <select id="filterClassification" onchange="applyFilters()">
-      <option value="">All Classifications</option>
-    </select>
-    <select id="filterOutcome" onchange="applyFilters()">
-      <option value="">All Outcomes</option>
-    </select>
-    <select id="filterJob" onchange="applyFilters()">
-      <option value="">All Job #</option>
-    </select>
+    <select id="filterClassification" onchange="applyFilters()"><option value="">All Classifications</option></select>
+    <select id="filterOutcome" onchange="applyFilters()"><option value="">All Outcomes</option></select>
+    <select id="filterJob" onchange="applyFilters()"><option value="">All Job #</option></select>
     <button onclick="initIncident()">🔄 Refresh</button>
     <button onclick="exportCSV('incident-data.csv', fullIncidentData)">📥 Export</button>
   </div>
@@ -114,19 +108,19 @@
   </table>
 </div>
 
-<!-- Man Hours (placeholder) -->
+<!-- Man Hours -->
 <div class="tab-content" id="tab2">
   <h3>👷 Man Hours by Subcontractor</h3>
   <p>Coming soon...</p>
 </div>
 
-<!-- Incident Rates (placeholder) -->
+<!-- Incident Rates -->
 <div class="tab-content" id="tab3">
   <h3>📈 Incident Rates (TRIR, LTIR)</h3>
   <p>Coming soon...</p>
 </div>
 
-<!-- Summary Data table -->
+<!-- Summary Table -->
 <div class="tab-content" id="tab4">
   <h3>📑 Executive Summary Data</h3>
   <div class="filters">
@@ -143,8 +137,7 @@
   const SHEET_ID = '1iMo8gWO3z9UW3f_qInMJ2z5k9h1XiRhGrkLlAZWI-n4';
   const API_KEY = 'AIzaSyDWcMK3AUseaJT5r3c031n0bSiqpxaz4bo';
 
-  let fullIncidentData = [], currentIncidentHeaders = [];
-  let fullSummaryData = [], currentSummaryHeaders = [];
+  let fullIncidentData = [], fullSummaryData = [];
 
   function showTab(id) {
     document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
@@ -153,73 +146,28 @@
     document.querySelector(`[onclick="showTab('${id}')"]`).classList.add('active');
   }
 
-  // Fetch and render incident sheet
   function initIncident() {
     fetchSheet('Master Sheet', data => {
       fullIncidentData = data;
-      renderTable('incidentTable', fullIncidentData, (r) => {
-        currentIncidentHeaders = Object.keys(r);
-        populateIncidentFilters();
-      });
+      renderTable('incidentTable', fullIncidentData);
+      populateIncidentFilters();
     });
   }
 
-  // Filters for incident table
-  function populateIncidentFilters() {
-    const c = document.getElementById('filterClassification'),
-          o = document.getElementById('filterOutcome'),
-          j = document.getElementById('filterJob');
-    [c,o,j].forEach(el => { while(el.options.length>1) el.remove(1); });
-    const sets = {c: new Set(), o: new Set(), j: new Set()};
-    fullIncidentData.forEach(r => {
-      if(r['INCIDENT CLASSIFICATION']) sets.c.add(r['INCIDENT CLASSIFICATION']);
-      if(r['INCIDENT OUTCOME']) sets.o.add(r['INCIDENT OUTCOME']);
-      if(r['JOB NAME / #']) sets.j.add(r['JOB NAME / #']);
-    });
-    Array.from(sets.c).sort().forEach(v => c.add(new Option(v,v)));
-    Array.from(sets.o).sort().forEach(v => o.add(new Option(v,v)));
-    Array.from(sets.j).sort().forEach(v => j.add(new Option(v,v)));
-  }
-
-  function applyFilters() {
-    const txt = document.getElementById('searchBox').value.toLowerCase();
-    const cls = document.getElementById('filterClassification').value;
-    const out = document.getElementById('filterOutcome').value;
-    const job = document.getElementById('filterJob').value;
-    const filtered = fullIncidentData.filter(r => {
-      const t = JSON.stringify(Object.values(r)).toLowerCase();
-      return (!txt || t.includes(txt))
-          && (!cls || r['INCIDENT CLASSIFICATION'] === cls)
-          && (!out || r['INCIDENT OUTCOME'] === out)
-          && (!job || r['JOB NAME / #'] === job);
-    });
-    renderTable('incidentTable', filtered);
-  }
-
-  // Fetch and render summary sheet
   function initSummary() {
-    fetchSheet('MDASHBOARD', data => {
+    fetchSheet('Summary Table', data => {
       fullSummaryData = data;
-      renderTable('summaryTable', fullSummaryData, (r) => {
-        currentSummaryHeaders = Object.keys(r);
-      });
+      renderTable('summaryTable', fullSummaryData);
     });
   }
 
-  function applySummaryFilter() {
-    const txt = document.getElementById('searchSummary').value.toLowerCase();
-    const filtered = fullSummaryData.filter(r => JSON.stringify(Object.values(r)).toLowerCase().includes(txt));
-    renderTable('summaryTable', filtered);
-  }
-
-  // Core fetch helper
   function fetchSheet(sheetName, callback) {
     const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(sheetName)}?key=${API_KEY}`;
     fetch(url)
       .then(r => r.json())
       .then(json => {
         const rows = json.values || [];
-        if (rows.length <1) throw 'empty sheet';
+        if (rows.length < 1) throw 'empty sheet';
         const [hdr, ...data] = rows;
         const arr = data.map(r => hdr.reduce((o,h,i)=>(o[h]=r[i]||'',o),{}));
         callback(arr);
@@ -227,19 +175,20 @@
       .catch(e => alert('Error loading "'+sheetName+'": '+e));
   }
 
-  // Table renderer
-  function renderTable(tableId, data, onHeaderReady) {
-    const tbl = document.getElementById(tableId),
-          th = tbl.querySelector('thead'), tb = tbl.querySelector('tbody');
+  function renderTable(tableId, data) {
+    const table = document.getElementById(tableId);
+    const th = table.querySelector('thead'), tb = table.querySelector('tbody');
     th.innerHTML = tb.innerHTML = '';
-    if (data.length === 0) { tb.innerHTML = '<tr><td colspan="99">No results</td></tr>'; return; }
+    if (data.length === 0) {
+      tb.innerHTML = '<tr><td colspan="99">No data</td></tr>';
+      return;
+    }
     const headers = Object.keys(data[0]);
-    if(onHeaderReady) onHeaderReady(data[0]);
     const hr = document.createElement('tr');
     headers.forEach(h => {
-      const c = document.createElement('th');
-      c.textContent = h;
-      hr.appendChild(c);
+      const cell = document.createElement('th');
+      cell.textContent = h;
+      hr.appendChild(cell);
     });
     th.appendChild(hr);
 
@@ -254,19 +203,54 @@
     });
   }
 
-  // CSV export logic
-  function exportCSV(defaultFileName, dataArr) {
-    if (!dataArr.length) return;
-    const hdr = Object.keys(dataArr[0]);
-    const lines = [hdr.map(h=>`"${h.replace(/"/g,'""')}"`).join(',')];
-    dataArr.forEach(r => {
-      const row = hdr.map(h => `"${(r[h]||'').replace(/"/g,'""')}"`);
-      lines.push(row.join(','));
+  function applyFilters() {
+    const txt = document.getElementById('searchBox').value.toLowerCase();
+    const cls = document.getElementById('filterClassification').value;
+    const out = document.getElementById('filterOutcome').value;
+    const job = document.getElementById('filterJob').value;
+    const filtered = fullIncidentData.filter(r => {
+      const rowText = JSON.stringify(Object.values(r)).toLowerCase();
+      return (!txt || rowText.includes(txt))
+          && (!cls || r['INCIDENT CLASSIFICATION'] === cls)
+          && (!out || r['INCIDENT OUTCOME'] === out)
+          && (!job || r['JOB NAME / #'] === job);
     });
-    const blob = new Blob([lines.join('\n')], {type:'text/csv'});
+    renderTable('incidentTable', filtered);
+  }
+
+  function applySummaryFilter() {
+    const txt = document.getElementById('searchSummary').value.toLowerCase();
+    const filtered = fullSummaryData.filter(r => JSON.stringify(Object.values(r)).toLowerCase().includes(txt));
+    renderTable('summaryTable', filtered);
+  }
+
+  function populateIncidentFilters() {
+    const c = document.getElementById('filterClassification'),
+          o = document.getElementById('filterOutcome'),
+          j = document.getElementById('filterJob');
+    [c, o, j].forEach(el => { while(el.options.length > 1) el.remove(1); });
+    const sets = { c: new Set(), o: new Set(), j: new Set() };
+    fullIncidentData.forEach(r => {
+      if (r['INCIDENT CLASSIFICATION']) sets.c.add(r['INCIDENT CLASSIFICATION']);
+      if (r['INCIDENT OUTCOME']) sets.o.add(r['INCIDENT OUTCOME']);
+      if (r['JOB NAME / #']) sets.j.add(r['JOB NAME / #']);
+    });
+    Array.from(sets.c).sort().forEach(v => c.add(new Option(v, v)));
+    Array.from(sets.o).sort().forEach(v => o.add(new Option(v, v)));
+    Array.from(sets.j).sort().forEach(v => j.add(new Option(v, v)));
+  }
+
+  function exportCSV(fileName, data) {
+    if (!data.length) return;
+    const headers = Object.keys(data[0]);
+    const rows = [headers.join(',')];
+    data.forEach(r => {
+      rows.push(headers.map(h => `"${(r[h]||'').replace(/"/g, '""')}"`).join(','));
+    });
+    const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = defaultFileName;
+    a.download = fileName;
     a.click();
   }
 
