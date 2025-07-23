@@ -1,109 +1,46 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8"/>
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Incident Dashboard</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
   <style>
-    body {
-      margin: 0;
-      font-family: "Segoe UI", sans-serif;
-      background: #f4f6f8;
-      color: #333;
-    }
-    header {
-      background: #0077cc;
-      color: white;
-      padding: 15px 25px;
-      font-size: 1.5em;
-      font-weight: bold;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    .tabs {
-      display: flex;
-      background: #e9ecef;
-      border-bottom: 1px solid #ccc;
-    }
-    .tab {
-      padding: 10px 20px;
-      cursor: pointer;
-      font-weight: bold;
-      border-right: 1px solid #ccc;
-    }
-    .tab.active {
-      background: white;
-      border-bottom: none;
-    }
-    .tab-content {
-      display: none;
-      padding: 20px;
-    }
-    .tab-content.active {
-      display: block;
-    }
-    .filters {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-bottom: 15px;
-    }
-    input, select, button {
-      padding: 8px;
-      font-size: 14px;
-    }
-    button {
-      background: #007BFF;
-      color: white;
-      border: none;
-      cursor: pointer;
-    }
-    button:hover {
-      background: #0056b3;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      background: white;
-    }
-    th, td {
-      border: 1px solid #ddd;
-      padding: 6px 8px;
-      text-align: left;
-    }
-    th {
-      background: #f0f0f0;
-      position: sticky;
-      top: 0;
-      z-index: 1;
-    }
-    tr:nth-child(even) {
-      background: #f9f9f9;
-    }
+    body { margin:0; font-family:"Segoe UI",sans-serif; background:#f4f6f8; color:#333 }
+    header { background:#0077cc; color:white; padding:15px 25px; font-size:1.5em; font-weight:bold; box-shadow:0 2px 4px rgba(0,0,0,0.1) }
+    .tabs { display:flex; background:#e9ecef; border-bottom:1px solid #ccc }
+    .tab { padding:10px 20px; cursor:pointer; font-weight:bold; border-right:1px solid #ccc }
+    .tab.active { background:white; border-bottom:none }
+    .tab-content { display:none; padding:20px }
+    .tab-content.active { display:block }
+    .filters { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:15px }
+    input, select, button { padding:8px; font-size:14px }
+    button { background:#007BFF; color:white; border:none; cursor:pointer }
+    button:hover { background:#0056b3 }
+    table { width:100%; border-collapse:collapse; background:white }
+    th, td { border:1px solid #ddd; padding:8px; text-align:left }
+    th { background:#f0f0f0; position:sticky; top:0; z-index:1 }
+    tr:nth-child(even) { background:#f9f9f9 }
+    .table-block { margin-bottom:40px; background:white; padding:15px; border-radius:6px; box-shadow:0 0 5px rgba(0,0,0,0.1) }
+    .table-block h2 { margin:0 0 10px; font-size:1.2em; border-bottom:1px solid #ccc; padding-bottom:5px }
   </style>
 </head>
 <body>
 
 <header>📊 Incident Dashboard</header>
-
 <div class="tabs">
   <div class="tab active" onclick="showTab('tab1')">📋 Incident Table</div>
-  <div class="tab" onclick="showTab('tab2')">👷‍♂️ Man Hours</div>
+  <div class="tab" onclick="showTab('tab2')">👷 Man Hours</div>
   <div class="tab" onclick="showTab('tab3')">📈 Incident Rates</div>
-  <div class="tab" onclick="showTab('tab4')">📑 Summary Table</div>
+  <div class="tab" onclick="showTab('tab4')">📑 Summary Tables</div>
 </div>
 
 <div class="tab-content active" id="tab1">
   <div class="filters">
     <input type="text" id="searchBox" placeholder="Search..." oninput="applyFilters()">
-    <select id="filterClassification" onchange="applyFilters()">
-      <option value="">All Classifications</option>
-    </select>
-    <select id="filterOutcome" onchange="applyFilters()">
-      <option value="">All Outcomes</option>
-    </select>
-    <select id="filterJob" onchange="applyFilters()">
-      <option value="">All Job #</option>
-    </select>
+    <select id="filterClassification"><option value="">All Classifications</option></select>
+    <select id="filterOutcome"><option value="">All Outcomes</option></select>
+    <select id="filterJob"><option value="">All Job #</option></select>
     <button onclick="initIncident()">🔄 Refresh</button>
     <button onclick="exportCSV('incident-data.csv', fullIncidentData)">📥 Export</button>
   </div>
@@ -112,155 +49,153 @@
 
 <div class="tab-content" id="tab2">
   <h3>👷 Man Hours by Subcontractor</h3>
-  <p>Coming soon...</p>
+  <p>Coming soon…</p>
 </div>
 
 <div class="tab-content" id="tab3">
   <h3>📈 Incident Rates (TRIR, LTIR)</h3>
-  <p>Coming soon...</p>
+  <p>Coming soon…</p>
 </div>
 
 <div class="tab-content" id="tab4">
-  <h3>📑 Executive Summary</h3>
-  <div class="filters">
-    <input type="text" id="searchSummary" placeholder="Search summary..." oninput="applySummaryFilter()">
-    <button onclick="initSummary()">🔄 Refresh Summary</button>
-  </div>
-  <table id="summaryTable"><thead></thead><tbody></tbody></table>
+  <h3>📑 Summary Tables</h3>
+  <div id="summaryContainer"></div>
 </div>
 
 <script>
-  const SHEET_ID = '1iMo8gWO3z9UW3f_qInMJ2z5k9h1XiRhGrkLlAZWI-n4';
-  const API_KEY = 'AIzaSyDWcMK3AUseaJT5r3c031n0bSiqpxaz4bo';
+const SHEET_ID = '1iMo8gWO3z9UW3f_qInMJ2z5k9h1XiRhGrkLlAZWI-n4';
+const API_KEY = 'AIzaSyDWcMK3AUseaJT5r3c031n0bSiqpxaz4bo';
+let fullIncidentData = [];
 
-  let fullIncidentData = [], fullSummaryData = [];
+function showTab(id) {
+  document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelector(`[onclick="showTab('${id}')"]`).classList.add('active');
+}
 
-  function showTab(id) {
-    document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    document.getElementById(id).classList.add('active');
-    document.querySelector(`[onclick="showTab('${id}')"]`).classList.add('active');
-  }
-
-  function initIncident() {
-    fetchSheet('Master Sheet', data => {
-      fullIncidentData = data;
-      renderTable('incidentTable', fullIncidentData);
-      populateIncidentFilters();
-    });
-  }
-
-  function initSummary() {
-    fetchSheet('Summary Table', data => {
-      console.log('Summary data from Sheets:', data);
-      fullSummaryData = data;
-      renderTable('summaryTable', fullSummaryData);
-    });
-  }
-
-  function fetchSheet(sheetName, callback) {
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(sheetName)}?key=${API_KEY}`;
-    fetch(url)
-      .then(r => r.json())
-      .then(json => {
-        const rows = json.values || [];
-        const arr = rows.length > 1 ? rows.slice(1).map(r => {
-          const headers = rows[0];
-          return headers.reduce((o, h, i) => (o[h] = r[i] || '', o), {});
-        }) : [];
-        callback(arr);
-      })
-      .catch(e => alert('Error loading "' + sheetName + '": ' + e));
-  }
-
-  function renderTable(tableId, data) {
-    const table = document.getElementById(tableId);
-    const th = table.querySelector('thead'), tb = table.querySelector('tbody');
-    th.innerHTML = tb.innerHTML = '';
-    if (!data.length) {
-      tb.innerHTML = '<tr><td colspan="99">No data</td></tr>';
-      return;
-    }
-    const headers = Object.keys(data[0]);
-    const hr = document.createElement('tr');
-    headers.forEach(h => {
-      const cell = document.createElement('th');
-      cell.textContent = h;
-      hr.appendChild(cell);
-    });
-    th.appendChild(hr);
-
-    data.forEach(r => {
-      const row = document.createElement('tr');
-      headers.forEach(h => {
-        const td = document.createElement('td');
-        td.textContent = r[h];
-        row.appendChild(td);
-      });
-      tb.appendChild(row);
-    });
-  }
-
-  function populateIncidentFilters() {
-    const c = document.getElementById('filterClassification'),
-          o = document.getElementById('filterOutcome'),
-          j = document.getElementById('filterJob');
-    [c, o, j].forEach(el => { while (el.options.length > 1) el.remove(1); });
-    const sets = { c: new Set(), o: new Set(), j: new Set() };
-    fullIncidentData.forEach(r => {
-      if (r['INCIDENT CLASSIFICATION']) sets.c.add(r['INCIDENT CLASSIFICATION']);
-      if (r['INCIDENT OUTCOME']) sets.o.add(r['INCIDENT OUTCOME']);
-      if (r['JOB NAME / #']) sets.j.add(r['JOB NAME / #']);
-    });
-    Array.from(sets.c).sort().forEach(v => c.add(new Option(v, v)));
-    Array.from(sets.o).sort().forEach(v => o.add(new Option(v, v)));
-    Array.from(sets.j).sort().forEach(v => j.add(new Option(v, v)));
-  }
-
-  function applyFilters() {
-    const txt = document.getElementById('searchBox').value.toLowerCase();
-    const cls = document.getElementById('filterClassification').value;
-    const out = document.getElementById('filterOutcome').value;
-    const job = document.getElementById('filterJob').value;
-    renderTable('incidentTable',
-      fullIncidentData.filter(r => {
-        const rowText = JSON.stringify(Object.values(r)).toLowerCase();
-        return (!txt || rowText.includes(txt))
-          && (!cls || r['INCIDENT CLASSIFICATION'] === cls)
-          && (!out || r['INCIDENT OUTCOME'] === out)
-          && (!job || r['JOB NAME / #'] === job);
-      })
-    );
-  }
-
-  function applySummaryFilter() {
-    const txt = document.getElementById('searchSummary').value.toLowerCase();
-    renderTable('summaryTable',
-      fullSummaryData.filter(r =>
-        JSON.stringify(Object.values(r)).toLowerCase().includes(txt)
-      )
-    );
-  }
-
-  function exportCSV(filename, data) {
-    if (!data.length) return;
-    const headers = Object.keys(data[0]);
-    const lines = [headers.join(',')];
-    data.forEach(r => {
-      lines.push(headers.map(h => `"${(r[h]||'').replace(/"/g, '""')}"`).join(','));
-    });
-    const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = filename;
-    a.click();
-  }
-
-  window.addEventListener('DOMContentLoaded', () => {
-    initIncident();
-    initSummary();
+function initIncident() {
+  fetchSheet('Master Sheet', data => {
+    fullIncidentData = data;
+    renderTable('incidentTable', data);
+    populateIncidentFilters();
   });
-</script>
+}
 
+function applyFilters() {
+  const txt = document.getElementById('searchBox').value.toLowerCase();
+  const c = document.getElementById('filterClassification').value;
+  const o = document.getElementById('filterOutcome').value;
+  const j = document.getElementById('filterJob').value;
+  const filtered = fullIncidentData.filter(r => {
+    const row = JSON.stringify(Object.values(r)).toLowerCase();
+    return (!txt || row.includes(txt)) &&
+           (!c || r['INCIDENT CLASSIFICATION'] === c) &&
+           (!o || r['INCIDENT OUTCOME'] === o) &&
+           (!j || r['JOB NAME / #'] === j);
+  });
+  renderTable('incidentTable', filtered);
+}
+
+function populateIncidentFilters() {
+  ['Classification','Outcome','Job'].forEach(key=>{
+    const sel = document.getElementById('filter'+key);
+    sel.options.length = 1;
+  });
+  const sets={c:new Set(),o:new Set(),j:new Set()};
+  fullIncidentData.forEach(r => {
+    if(r['INCIDENT CLASSIFICATION']) sets.c.add(r['INCIDENT CLASSIFICATION']);
+    if(r['INCIDENT OUTCOME']) sets.o.add(r['INCIDENT OUTCOME']);
+    if(r['JOB NAME / #']) sets.j.add(r['JOB NAME / #']);
+  });
+  Array.from(sets.c).sort().forEach(v=>document.getElementById('filterClassification').add(new Option(v,v)));
+  Array.from(sets.o).sort().forEach(v=>document.getElementById('filterOutcome').add(new Option(v,v)));
+  Array.from(sets.j).sort().forEach(v=>document.getElementById('filterJob').add(new Option(v,v)));
+}
+
+function initSummary() {
+  const url = `https://docs.google.com/spreadsheets/d/e/2PACX-1vQUvMV4tvUHnxdhRaAAmmdUpGIcNC4W4MAkbz1kOdXxtsE5813CGN-xiHyYdbmspRoRrWlCzeT6CIq2/pub?gid=566656137&single=true&output=csv`;
+  Papa.parse(url, {
+    download: true,
+    header: false,
+    skipEmptyLines: true,
+    complete: res => {
+      const data = res.data;
+      const tables = []; let block=[];
+      data.forEach(row=>{
+        if(row.some(c=>c.trim())) block.push(row);
+        else if(block.length){ tables.push(block); block=[]; }
+      });
+      if(block.length) tables.push(block);
+      renderSummary(tables);
+    }
+  });
+}
+
+function renderSummary(tables) {
+  const cont = document.getElementById('summaryContainer');
+  cont.innerHTML = '';
+  tables.forEach(tbl=>{
+    const section = document.createElement('div');
+    section.className = 'table-block';
+    const title = document.createElement('h2');
+    title.textContent = tbl[0][0];
+    section.appendChild(title);
+    const t = document.createElement('table'),
+          thead = document.createElement('thead'),
+          tbody = document.createElement('tbody');
+    const hdr = tbl[0];
+    const htr = document.createElement('tr');
+    hdr.forEach(c=>{const th=document.createElement('th');th.textContent=c;htr.appendChild(th);});
+    thead.appendChild(htr);
+    tbl.slice(1).forEach(r=>{
+      const tr=document.createElement('tr');
+      hdr.forEach((_,i)=>{
+        const td=document.createElement('td');
+        td.textContent = r[i]||'';
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+    t.appendChild(thead); t.appendChild(tbody); section.appendChild(t); cont.appendChild(section);
+  });
+}
+
+function fetchSheet(sheetName, cb) {
+  const u = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(sheetName)}?key=${API_KEY}`;
+  fetch(u).then(r=>r.json()).then(json=>{
+    const arr = (json.values||[]).slice(1).map(r=>json.values[0].reduce((o,h,i)=>(o[h]=r[i]||'',o),{}));
+    cb(arr);
+  }).catch(e=>alert('Error: '+sheetName+' → '+e));
+}
+
+function renderTable(id,data) {
+  const t=document.getElementById(id), h=t.querySelector('thead'), b=t.querySelector('tbody');
+  h.innerHTML = b.innerHTML = '';
+  if(!data.length){ b.innerHTML='<tr><td colspan="99">No data</td></tr>'; return; }
+  const hdr=Object.keys(data[0]);
+  const htr=document.createElement('tr');
+  hdr.forEach(c=>{const th=document.createElement('th');th.textContent=c;htr.appendChild(th);});
+  h.appendChild(htr);
+  data.forEach(r=>{
+    const tr=document.createElement('tr');
+    hdr.forEach(c=>{const td=document.createElement('td');td.textContent=r[c];tr.appendChild(td);});
+    b.appendChild(tr);
+  });
+}
+
+function exportCSV(fn,data){
+  if(!data.length) return;
+  const hdr=Object.keys(data[0]).join(',');
+  const rows = data.map(r=>Object.values(r).map(v=>`"${v.replace(/"/g,'""')}"`).join(','));
+  const blob=new Blob([hdr+'\n'+rows.join('\n')],{type:'text/csv'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=fn;a.click();
+}
+
+window.addEventListener('DOMContentLoaded',()=>{
+  initIncident();
+  initSummary();
+});
+</script>
 </body>
 </html>
