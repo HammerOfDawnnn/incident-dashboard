@@ -198,7 +198,7 @@
 
   // Fetch and render summary sheet
   function initSummary() {
-    fetchSheet('METRICS TRACKING : DASHBOARD', data => {
+    fetchSheet('MDASHBOARD', data => {
       fullSummaryData = data;
       renderTable('summaryTable', fullSummaryData, (r) => {
         currentSummaryHeaders = Object.keys(r);
