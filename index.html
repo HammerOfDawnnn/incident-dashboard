@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Incident Dashboard</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
   <style>
     body {
       margin: 0; font-family: "Segoe UI", sans-serif; background: #f4f6f8; color: #333;
@@ -85,12 +84,12 @@
 
 <div class="tab-content" id="tab2">
   <h3>👷 Man Hours by Subcontractor</h3>
-  <p>Coming next...</p>
+  <p>Coming soon...</p>
 </div>
 
 <div class="tab-content" id="tab3">
   <h3>📈 Incident Rates (TRIR, LTIR)</h3>
-  <p>Coming next...</p>
+  <p>Coming soon...</p>
 </div>
 
 <div class="tab-content" id="tab4">
@@ -109,17 +108,25 @@
   }
 
   function init() {
-    const url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQUvMV4tvUHnxdhRaAAmmdUpGIcNC4W4MAkbz1kOdXxtsE5813CGN-xiHyYdbmspRoRrWlCzeT6CIq2/pub?gid=551524865&single=true&output=csv&nocache=' + Date.now();
-    Papa.parse(url, {
-      download: true, header: true, skipEmptyLines: true,
-      complete: res => {
-        fullData = res.data;
-        currentHeaders = Object.keys(res.data[0] || {});
+    const sheetId = '1iMo8gWO3z9UW3f_qInMJ2z5k9h1XiRhGrkLlAZWI-n4';
+    const sheetName = 'Master Sheet';
+    const apiKey = 'AIzaSyDWcMK3AUseaJT5r3c031n0bSiqpxaz4bo';
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(sheetName)}?key=${apiKey}`;
+
+    fetch(url)
+      .then(res => res.json())
+      .then(json => {
+        const rows = json.values || [];
+        if (rows.length < 2) throw 'No data in sheet';
+        const [header, ...dataRows] = rows;
+        fullData = dataRows.map(r => {
+          return header.reduce((o, h, i) => (o[h] = r[i] || '', o), {});
+        });
+        currentHeaders = header;
         populateFilters();
         renderTable(fullData);
-      },
-      error: () => alert('⚠️ Failed to load data.')
-    });
+      })
+      .catch(err => alert('⚠️ Failed to load data: ' + err));
   }
 
   function populateFilters() {
@@ -172,3 +179,25 @@
         tr.appendChild(td);
       });
       tb.appendChild(tr);
+    });
+  }
+
+  function exportCSV() {
+    const rows = [['"'+currentHeaders.join('","')+'"']];
+    document.querySelectorAll('#dataTable tbody tr').forEach(tr=>{
+      if(tr.style.display==='none') return;
+      const vals = Array.from(tr.children).map(td=>'""'+td.textContent.replace(/"/g,'""')+'""');
+      rows.push([vals.join(',')]);
+    });
+    const blob = new Blob([rows.join('\n')], {type: 'text/csv'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'incident-data.csv';
+    a.click();
+  }
+
+  window.addEventListener('DOMContentLoaded', init);
+</script>
+
+</body>
+</html>
