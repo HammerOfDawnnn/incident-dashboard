@@ -78,18 +78,6 @@
     tr:nth-child(even) {
       background: #f9f9f9;
     }
-    /* Summary iframe responsive container */
-    .iframe-wrapper {
-      width: 100%;
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-    }
-    .iframe-wrapper iframe {
-      width: 1600px;
-      max-width: 100%;
-      height: 1000px;
-      border: 0;
-    }
   </style>
 </head>
 <body>
@@ -100,7 +88,6 @@
   <div class="tab active" onclick="showTab('tab1')">📋 Incident Table</div>
   <div class="tab" onclick="showTab('tab2')">👷‍♂️ Man Hours</div>
   <div class="tab" onclick="showTab('tab3')">📈 Incident Rates</div>
-  <div class="tab" onclick="showTab('tab4')">📊 Summary Charts</div>
 </div>
 
 <div class="tab-content active" id="tab1">
@@ -127,13 +114,6 @@
 <div class="tab-content" id="tab3">
   <h3>📈 Incident Rates (TRIR, LTIR)</h3>
   <p>Coming soon...</p>
-</div>
-
-<div class="tab-content" id="tab4">
-  <h3>📊 Executive Summary (Live from Google Sheets)</h3>
-  <div class="iframe-wrapper">
-    <iframe src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQUvMV4tvUHnxdhRaAAmmdUpGIcNC4W4MAkbz1kOdXxtsE5813CGN-xiHyYdbmspRoRrWlCzeT6CIq2/pubhtml?gid=566656137&single=true"></iframe>
-  </div>
 </div>
 
 <script>
@@ -172,7 +152,7 @@
     const cSel = document.getElementById('filterClassification');
     const oSel = document.getElementById('filterOutcome');
     const jSel = document.getElementById('filterJob');
-    [cSel, oSel, jSel].forEach(el => { while (el.options.length > 1) el.remove(1); });
+    [cSel, oSel, jSel].forEach(el => { while(el.options.length > 1) el.remove(1); });
     const seen = { c: new Set(), o: new Set(), j: new Set() };
     fullData.forEach(r => {
       if (r['INCIDENT CLASSIFICATION']) seen.c.add(r['INCIDENT CLASSIFICATION']);
@@ -192,9 +172,9 @@
     const filtered = fullData.filter(row => {
       const rowText = JSON.stringify(Object.values(row)).toLowerCase();
       return (!txt || rowText.includes(txt)) &&
-        (!cls || row['INCIDENT CLASSIFICATION'] === cls) &&
-        (!out || row['INCIDENT OUTCOME'] === out) &&
-        (!job || row['JOB NAME / #'] === job);
+             (!cls || row['INCIDENT CLASSIFICATION'] === cls) &&
+             (!out || row['INCIDENT OUTCOME'] === out) &&
+             (!job || row['JOB NAME / #'] === job);
     });
     renderTable(filtered);
   }
