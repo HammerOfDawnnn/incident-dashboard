@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Incident Dashboard</title>
   <style>
@@ -67,13 +67,14 @@
     }
     th, td {
       border: 1px solid #ddd;
-      padding: 8px;
+      padding: 6px 8px;
       text-align: left;
     }
     th {
       background: #f0f0f0;
       position: sticky;
       top: 0;
+      z-index: 1;
     }
     tr:nth-child(even) {
       background: #f9f9f9;
@@ -88,80 +89,96 @@
   <div class="tab active" onclick="showTab('tab1')">📋 Incident Table</div>
   <div class="tab" onclick="showTab('tab2')">👷‍♂️ Man Hours</div>
   <div class="tab" onclick="showTab('tab3')">📈 Incident Rates</div>
+  <div class="tab" onclick="showTab('tab4')">📑 Summary Data</div>
 </div>
 
+<!-- Incident Table -->
 <div class="tab-content active" id="tab1">
   <div class="filters">
     <input type="text" id="searchBox" placeholder="Search..." oninput="applyFilters()">
-    <select id="filterClassification" onchange="applyFilters()"><option value="">All Classifications</option></select>
-    <select id="filterOutcome" onchange="applyFilters()"><option value="">All Outcomes</option></select>
-    <select id="filterJob" onchange="applyFilters()"><option value="">All Job #</option></select>
-    <button onclick="init()">🔄 Refresh</button>
-    <button onclick="exportCSV()">📥 Export</button>
+    <select id="filterClassification" onchange="applyFilters()">
+      <option value="">All Classifications</option>
+    </select>
+    <select id="filterOutcome" onchange="applyFilters()">
+      <option value="">All Outcomes</option>
+    </select>
+    <select id="filterJob" onchange="applyFilters()">
+      <option value="">All Job #</option>
+    </select>
+    <button onclick="initIncident()">🔄 Refresh</button>
+    <button onclick="exportCSV('incident-data.csv', fullIncidentData)">📥 Export</button>
   </div>
-
-  <table id="dataTable">
+  <table id="incidentTable">
     <thead></thead>
     <tbody></tbody>
   </table>
 </div>
 
+<!-- Man Hours (placeholder) -->
 <div class="tab-content" id="tab2">
   <h3>👷 Man Hours by Subcontractor</h3>
   <p>Coming soon...</p>
 </div>
 
+<!-- Incident Rates (placeholder) -->
 <div class="tab-content" id="tab3">
   <h3>📈 Incident Rates (TRIR, LTIR)</h3>
   <p>Coming soon...</p>
 </div>
 
+<!-- Summary Data table -->
+<div class="tab-content" id="tab4">
+  <h3>📑 Executive Summary Data</h3>
+  <div class="filters">
+    <input type="text" id="searchSummary" placeholder="Search summary..." oninput="applySummaryFilter()">
+    <button onclick="initSummary()">🔄 Refresh Summary</button>
+  </div>
+  <table id="summaryTable">
+    <thead></thead>
+    <tbody></tbody>
+  </table>
+</div>
+
 <script>
-  let fullData = [], currentHeaders = [];
+  const SHEET_ID = '1iMo8gWO3z9UW3f_qInMJ2z5k9h1XiRhGrkLlAZWI-n4';
+  const API_KEY = 'AIzaSyDWcMK3AUseaJT5r3c031n0bSiqpxaz4bo';
+
+  let fullIncidentData = [], currentIncidentHeaders = [];
+  let fullSummaryData = [], currentSummaryHeaders = [];
 
   function showTab(id) {
-    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     document.getElementById(id).classList.add('active');
     document.querySelector(`[onclick="showTab('${id}')"]`).classList.add('active');
   }
 
-  function init() {
-    const sheetId = '1iMo8gWO3z9UW3f_qInMJ2z5k9h1XiRhGrkLlAZWI-n4';
-    const sheetName = 'Master Sheet';
-    const apiKey = 'AIzaSyDWcMK3AUseaJT5r3c031n0bSiqpxaz4bo';
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(sheetName)}?key=${apiKey}`;
-
-    fetch(url)
-      .then(res => res.json())
-      .then(json => {
-        const rows = json.values || [];
-        if (rows.length < 2) throw 'No data in sheet';
-        const [header, ...dataRows] = rows;
-        fullData = dataRows.map(r => {
-          return header.reduce((o, h, i) => (o[h] = r[i] || '', o), {});
-        });
-        currentHeaders = header;
-        populateFilters();
-        renderTable(fullData);
-      })
-      .catch(err => alert('⚠️ Failed to load data: ' + err));
+  // Fetch and render incident sheet
+  function initIncident() {
+    fetchSheet('Master Sheet', data => {
+      fullIncidentData = data;
+      renderTable('incidentTable', fullIncidentData, (r) => {
+        currentIncidentHeaders = Object.keys(r);
+        populateIncidentFilters();
+      });
+    });
   }
 
-  function populateFilters() {
-    const cSel = document.getElementById('filterClassification');
-    const oSel = document.getElementById('filterOutcome');
-    const jSel = document.getElementById('filterJob');
-    [cSel, oSel, jSel].forEach(el => { while(el.options.length > 1) el.remove(1); });
-    const seen = { c: new Set(), o: new Set(), j: new Set() };
-    fullData.forEach(r => {
-      if (r['INCIDENT CLASSIFICATION']) seen.c.add(r['INCIDENT CLASSIFICATION']);
-      if (r['INCIDENT OUTCOME']) seen.o.add(r['INCIDENT OUTCOME']);
-      if (r['JOB NAME / #']) seen.j.add(r['JOB NAME / #']);
+  // Filters for incident table
+  function populateIncidentFilters() {
+    const c = document.getElementById('filterClassification'),
+          o = document.getElementById('filterOutcome'),
+          j = document.getElementById('filterJob');
+    [c,o,j].forEach(el => { while(el.options.length>1) el.remove(1); });
+    const sets = {c: new Set(), o: new Set(), j: new Set()};
+    fullIncidentData.forEach(r => {
+      if(r['INCIDENT CLASSIFICATION']) sets.c.add(r['INCIDENT CLASSIFICATION']);
+      if(r['INCIDENT OUTCOME']) sets.o.add(r['INCIDENT OUTCOME']);
+      if(r['JOB NAME / #']) sets.j.add(r['JOB NAME / #']);
     });
-    for (const val of Array.from(seen.c).sort()) cSel.add(new Option(val, val));
-    for (const val of Array.from(seen.o).sort()) oSel.add(new Option(val, val));
-    for (const val of Array.from(seen.j).sort()) jSel.add(new Option(val, val));
+    Array.from(sets.c).sort().forEach(v => c.add(new Option(v,v)));
+    Array.from(sets.o).sort().forEach(v => o.add(new Option(v,v)));
+    Array.from(sets.j).sort().forEach(v => j.add(new Option(v,v)));
   }
 
   function applyFilters() {
@@ -169,53 +186,94 @@
     const cls = document.getElementById('filterClassification').value;
     const out = document.getElementById('filterOutcome').value;
     const job = document.getElementById('filterJob').value;
-    const filtered = fullData.filter(row => {
-      const rowText = JSON.stringify(Object.values(row)).toLowerCase();
-      return (!txt || rowText.includes(txt)) &&
-             (!cls || row['INCIDENT CLASSIFICATION'] === cls) &&
-             (!out || row['INCIDENT OUTCOME'] === out) &&
-             (!job || row['JOB NAME / #'] === job);
+    const filtered = fullIncidentData.filter(r => {
+      const t = JSON.stringify(Object.values(r)).toLowerCase();
+      return (!txt || t.includes(txt))
+          && (!cls || r['INCIDENT CLASSIFICATION'] === cls)
+          && (!out || r['INCIDENT OUTCOME'] === out)
+          && (!job || r['JOB NAME / #'] === job);
     });
-    renderTable(filtered);
+    renderTable('incidentTable', filtered);
   }
 
-  function renderTable(data) {
-    const t = document.getElementById('dataTable');
-    const th = t.querySelector('thead'), tb = t.querySelector('tbody');
-    th.innerHTML = tb.innerHTML = '';
-    const hRow = document.createElement('tr');
-    currentHeaders.forEach(h => {
-      const cell = document.createElement('th');
-      cell.textContent = h;
-      hRow.appendChild(cell);
-    });
-    th.appendChild(hRow);
-    data.forEach(r => {
-      const tr = document.createElement('tr');
-      currentHeaders.forEach(h => {
-        const td = document.createElement('td');
-        td.textContent = r[h] || '';
-        tr.appendChild(td);
+  // Fetch and render summary sheet
+  function initSummary() {
+    fetchSheet('METRICS TRACKING : DASHBOARD', data => {
+      fullSummaryData = data;
+      renderTable('summaryTable', fullSummaryData, (r) => {
+        currentSummaryHeaders = Object.keys(r);
       });
-      tb.appendChild(tr);
     });
   }
 
-  function exportCSV() {
-    const rows = [['"' + currentHeaders.join('","') + '"']];
-    document.querySelectorAll('#dataTable tbody tr').forEach(tr => {
-      if (tr.style.display === 'none') return;
-      const vals = Array.from(tr.children).map(td => '""' + td.textContent.replace(/"/g, '""') + '""');
-      rows.push([vals.join(',')]);
+  function applySummaryFilter() {
+    const txt = document.getElementById('searchSummary').value.toLowerCase();
+    const filtered = fullSummaryData.filter(r => JSON.stringify(Object.values(r)).toLowerCase().includes(txt));
+    renderTable('summaryTable', filtered);
+  }
+
+  // Core fetch helper
+  function fetchSheet(sheetName, callback) {
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(sheetName)}?key=${API_KEY}`;
+    fetch(url)
+      .then(r => r.json())
+      .then(json => {
+        const rows = json.values || [];
+        if (rows.length <1) throw 'empty sheet';
+        const [hdr, ...data] = rows;
+        const arr = data.map(r => hdr.reduce((o,h,i)=>(o[h]=r[i]||'',o),{}));
+        callback(arr);
+      })
+      .catch(e => alert('Error loading "'+sheetName+'": '+e));
+  }
+
+  // Table renderer
+  function renderTable(tableId, data, onHeaderReady) {
+    const tbl = document.getElementById(tableId),
+          th = tbl.querySelector('thead'), tb = tbl.querySelector('tbody');
+    th.innerHTML = tb.innerHTML = '';
+    if (data.length === 0) { tb.innerHTML = '<tr><td colspan="99">No results</td></tr>'; return; }
+    const headers = Object.keys(data[0]);
+    if(onHeaderReady) onHeaderReady(data[0]);
+    const hr = document.createElement('tr');
+    headers.forEach(h => {
+      const c = document.createElement('th');
+      c.textContent = h;
+      hr.appendChild(c);
     });
-    const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
+    th.appendChild(hr);
+
+    data.forEach(r => {
+      const row = document.createElement('tr');
+      headers.forEach(h => {
+        const td = document.createElement('td');
+        td.textContent = r[h];
+        row.appendChild(td);
+      });
+      tb.appendChild(row);
+    });
+  }
+
+  // CSV export logic
+  function exportCSV(defaultFileName, dataArr) {
+    if (!dataArr.length) return;
+    const hdr = Object.keys(dataArr[0]);
+    const lines = [hdr.map(h=>`"${h.replace(/"/g,'""')}"`).join(',')];
+    dataArr.forEach(r => {
+      const row = hdr.map(h => `"${(r[h]||'').replace(/"/g,'""')}"`);
+      lines.push(row.join(','));
+    });
+    const blob = new Blob([lines.join('\n')], {type:'text/csv'});
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'incident-data.csv';
+    a.download = defaultFileName;
     a.click();
   }
 
-  window.addEventListener('DOMContentLoaded', init);
+  window.addEventListener('DOMContentLoaded', () => {
+    initIncident();
+    initSummary();
+  });
 </script>
 
 </body>
