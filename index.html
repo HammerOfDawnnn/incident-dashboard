@@ -52,8 +52,11 @@
 </div>
 
 <div class="tab-content" id="tab2">
-  <h3>👷 Man Hours by Subcontractor</h3>
-  <p>Coming soon…</p>
+  <div class="filters">
+    <button onclick="initManHours()">🔄 Refresh Man Hours</button>
+    <button onclick="exportCSV('man-hours.csv', fullManHoursData)">📥 Export</button>
+  </div>
+  <table id="manHoursTable"><thead></thead><tbody></tbody></table>
 </div>
 
 <div class="tab-content" id="tab3">
@@ -70,7 +73,8 @@
 <script>
 const SHEET_ID = '1iMo8gWO3z9UW3f_qInMJ2z5k9h1XiRhGrkLlAZWI-n4';
 const API_KEY = 'AIzaSyDWcMK3AUseaJT5r3c031n0bSiqpxaz4bo';
-let fullIncidentData = [];
+
+let fullIncidentData = [], fullManHoursData = [];
 
 function showTab(id) {
   document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
@@ -118,6 +122,13 @@ function populateIncidentFilters() {
   Array.from(sets.j).sort().forEach(v=>document.getElementById('filterJob').add(new Option(v,v)));
 }
 
+function initManHours() {
+  fetchSheet('Man Hours', data => {
+    fullManHoursData = data;
+    renderTable('manHoursTable', data);
+  });
+}
+
 function initSummary() {
   const url = `https://docs.google.com/spreadsheets/d/e/2PACX-1vQUvMV4tvUHnxdhRaAAmmdUpGIcNC4W4MAkbz1kOdXxtsE5813CGN-xiHyYdbmspRoRrWlCzeT6CIq2/pub?gid=566656137&single=true&output=csv`;
   Papa.parse(url, {
@@ -147,98 +158,109 @@ function initSummary() {
 function renderSummary(tables) {
   const cont = document.getElementById('summaryContainer');
   cont.innerHTML = '';
-  tables.forEach(tbl=>{
-    const blockDiv = document.createElement('div');
-    blockDiv.className = 'table-block';
-    const title = document.createElement('h2');
-    title.textContent = tbl[0][0];
-    blockDiv.appendChild(title);
+  tables.forEach(tbl => {
+    const block = document.createElement('div');
+    block.className = 'table-block';
+    const h2 = document.createElement('h2');
+    h2.textContent = tbl[0][0];
+    block.appendChild(h2);
 
-    const t = document.createElement('table'),
+    const table = document.createElement('table'),
           thead = document.createElement('thead'),
           tbody = document.createElement('tbody');
     const hdr = tbl[0];
-    const hdrRow = document.createElement('tr');
-    hdr.forEach(c=>{
+    const headRow = document.createElement('tr');
+    hdr.forEach(c => {
       const th = document.createElement('th');
       th.textContent = c;
-      hdrRow.appendChild(th);
+      headRow.appendChild(th);
     });
-    thead.appendChild(hdrRow);
-    tbl.slice(1).forEach(r=>{
+    thead.appendChild(headRow);
+
+    tbl.slice(1).forEach(r => {
       const tr = document.createElement('tr');
-      hdr.forEach((_, i)=>{
+      hdr.forEach((_, i) => {
         const td = document.createElement('td');
         td.textContent = r[i] || '';
         tr.appendChild(td);
       });
       tbody.appendChild(tr);
     });
-    t.appendChild(thead);
-    t.appendChild(tbody);
-    blockDiv.appendChild(t);
-    cont.appendChild(blockDiv);
+
+    table.appendChild(thead);
+    table.appendChild(tbody);
+    block.appendChild(table);
+    cont.appendChild(block);
   });
 }
 
-function fetchSheet(name, cb) {
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(name)}?key=${API_KEY}`;
-  fetch(url).then(r => r.json()).then(json => {
-    const hdr = json.values ? json.values[0] : [];
-    const rows = json.values ? json.values.slice(1) : [];
-    const data = rows.map(r => {
-      const o = {};
-      hdr.forEach((h, i) => o[h] = r[i] || '');
-      return o;
-    });
-    cb(data);
-  }).catch(e => alert('Sheet fetch error ('+name+'): '+e));
+function fetchSheet(sheetName, cb) {
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(sheetName)}?key=${API_KEY}`;
+  fetch(url)
+    .then(resp => resp.json())
+    .then(json => {
+      const hdr = json.values ? json.values[0] : [];
+      const rows = json.values ? json.values.slice(1) : [];
+      const data = rows.map(r => {
+        const obj = {};
+        hdr.forEach((h, i) => obj[h] = r[i] || '');
+        return obj;
+      });
+      cb(data);
+    })
+    .catch(e => alert(`Error loading "${sheetName}": ${e}`));
 }
 
-function renderTable(id, data) {
-  const t = document.getElementById(id),
-        thead = t.querySelector('thead'),
-        tbody = t.querySelector('tbody');
+function renderTable(tableId, data) {
+  const table = document.getElementById(tableId);
+  const thead = table.querySelector('thead');
+  const tbody = table.querySelector('tbody');
   thead.innerHTML = '';
   tbody.innerHTML = '';
+
   if (!data.length) {
     tbody.innerHTML = '<tr><td colspan="99">No data</td></tr>';
     return;
   }
-  const hdr = Object.keys(data[0]);
-  const hdrRow = document.createElement('tr');
-  hdr.forEach(h => {
+
+  const headers = Object.keys(data[0]);
+  const headRow = document.createElement('tr');
+  headers.forEach(h => {
     const th = document.createElement('th');
     th.textContent = h;
-    hdrRow.appendChild(th);
+    headRow.appendChild(th);
   });
-  thead.appendChild(hdrRow);
-  data.forEach(r => {
+  thead.appendChild(headRow);
+
+  data.forEach(row => {
     const tr = document.createElement('tr');
-    hdr.forEach(h => {
+    headers.forEach(h => {
       const td = document.createElement('td');
-      td.textContent = r[h];
+      td.textContent = row[h];
       tr.appendChild(td);
     });
     tbody.appendChild(tr);
   });
 }
 
-function exportCSV(fn, data) {
-  if (data.length === 0) return;
-  const hdr = Object.keys(data[0]).join(',');
-  const rows = data.map(r =>
-    Object.values(r).map(v => `"${v.replace(/"/g, '""')}"`).join(',')
+function exportCSV(filename, data) {
+  if (!data.length) return;
+  const headers = Object.keys(data[0]).join(',');
+  const rows = data.map(obj => 
+    Object.values(obj).map(val => `"${val.replace(/"/g, '""')}"`).join(',')
   );
-  const blob = new Blob([hdr + '\n' + rows.join('\n')], {type:'text/csv'});
+  const csv = [headers, ...rows].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = fn;
+  a.href = url;
+  a.download = filename;
   a.click();
 }
 
 window.addEventListener('DOMContentLoaded', () => {
   initIncident();
+  initManHours();
   initSummary();
 });
 </script>
