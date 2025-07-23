@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Incident Dashboard</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
   <style>
@@ -19,7 +19,7 @@
     th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
     th { background: #f0f0f0; position: sticky; top: 0; }
     tr:nth-child(even) { background: #fafafa; }
-    @media (max-width:600px) {
+    @media(max-width:600px) {
       table, thead, tbody, tr, th, td { display: block; width: 100%; }
       th { position: static; }
     }
@@ -35,133 +35,175 @@
     <div class="tab" data-tab="summary">Summary Tables</div>
   </div>
 
-  <!-- Incident -->
   <div id="incidents" class="tab-content active">
     <div class="controls">
       <input id="searchInc" placeholder="🔍 Search..." oninput="applyIncFilters()">
       <select id="filterClass" onchange="applyIncFilters()"><option value="">All Classification</option></select>
       <select id="filterOutcome" onchange="applyIncFilters()"><option value="">All Outcome</option></select>
       <select id="filterJob" onchange="applyIncFilters()"><option value="">All Job #</option></select>
-      <button onclick="loadSheet('incTable','551524865')">🔄 Refresh</button>
+      <button onclick="fetchSheet('Master Sheet')">🔄 Refresh</button>
       <button onclick="exportCSV('incTable','incidents.csv')">📥 Export</button>
     </div>
     <table id="incTable"><thead></thead><tbody></tbody></table>
   </div>
 
-  <!-- Man Hours -->
   <div id="manhours" class="tab-content">
     <div class="controls">
-      <button onclick="loadSheet('mhTable','1317837509')">🔄 Refresh Man Hours</button>
+      <button onclick="fetchSheet('MAN HOURS')">🔄 Refresh Man Hours</button>
       <button onclick="exportCSV('mhTable','man_hours.csv')">📥 Export</button>
     </div>
     <table id="mhTable"><thead></thead><tbody></tbody></table>
   </div>
 
-  <!-- TRIR & LTIR (NEW) -->
   <div id="trir" class="tab-content">
     <div class="controls">
-      <button onclick="loadSheet('trirTable','1103432243')">🔄 Refresh TRIR & LTIR</button>
+      <button onclick="fetchSheet('TRIR & LTIR')">🔄 Refresh TRIR & LTIR</button>
       <button onclick="exportCSV('trirTable','trir_ltir.csv')">📥 Export</button>
     </div>
     <table id="trirTable"><thead></thead><tbody></tbody></table>
   </div>
 
-  <!-- Summary Tables -->
   <div id="summary" class="tab-content">
     <div class="controls">
-      <button onclick="loadSheet('summaryTable','802303625')">🔄 Refresh Summary</button>
+      <button onclick="fetchSheet('Summary Table')">🔄 Refresh Summary</button>
       <button onclick="exportCSV('summaryTable','summary.csv')">📥 Export</button>
     </div>
     <div id="summaryContainer"></div>
   </div>
 
-  <script>
-    const SHEET = '1iMo8gWO3z9UW3f_qInMJ2z5k9h1XiRhGrkLlAZWI-n4';
-    let incData = [];
+<script>
+  const SHEET_ID = '1iMo8gWO3z9UW3f_qInMJ2z5k9h1XiRhGrkLlAZWI-n4';
+  let incData = [];
 
-    document.querySelectorAll('.tab').forEach(el => {
-      el.onclick = () => {
-        document.querySelectorAll('.tab, .tab-content').forEach(x => x.classList.remove('active'));
-        el.classList.add('active');
-        document.getElementById(el.dataset.tab).classList.add('active');
-      };
+  document.querySelectorAll('.tab').forEach(el => el.onclick = () => {
+    document.querySelectorAll('.tab, .tab-content').forEach(x => x.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById(el.dataset.tab).classList.add('active');
+  });
+
+  function fetchSheet(sheetName) {
+    const tableId = {
+      'Master Sheet': 'incTable',
+      'MAN HOURS': 'mhTable',
+      'TRIR & LTIR': 'trirTable',
+      'Summary Table': 'summaryTable'
+    }[sheetName];
+    Papa.parse(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${getGid(sheetName)}&nocache=${Date.now()}`, {
+      download: true, header: true, skipEmptyLines: true,
+      complete: res => {
+        renderTable(tableId, res.data);
+        if (sheetName === 'Master Sheet') {
+          incData = res.data;
+          populateIncFilters();
+          applyIncFilters();
+        } else if (sheetName === 'Summary Table') {
+          renderSummary(res.data);
+        }
+      },
+      error: () => alert(`❌ Failed loading "${sheetName}"`)
     });
+  }
 
-    function loadSheet(tableId, gid) {
-      Papa.parse(`https://docs.google.com/spreadsheets/d/${SHEET}/export?format=csv&gid=${gid}&nocache=${Date.now()}`, {
-        download: true, header: true, skipEmptyLines: true,
-        complete: res => {
-          renderTable(tableId, res.data);
-          if (tableId === 'incTable') {
-            incData = res.data;
-            populateIncFilters();
-            applyIncFilters();
-          }
-        },
-        error: () => alert(`❌ Failed loading sheet GID=${gid}`)
-      });
-    }
+  function getGid(sheetName) {
+    return {
+      'Master Sheet': '551524865',
+      'MAN HOURS': '1317837509',
+      'TRIR & LTIR': '1103432243',
+      'Summary Table': '802303625'
+    }[sheetName];
+  }
 
-    function populateIncFilters() {
-      const cls = new Set(), out = new Set(), job = new Set();
-      incData.forEach(r => { cls.add(r['INCIDENT CLASSIFICATION']||''); out.add(r['INCIDENT OUTCOME']||''); job.add(r['JOB NAME / #']||''); });
-      setOptions('filterClass', cls);
-      setOptions('filterOutcome', out);
-      setOptions('filterJob', job);
-    }
-
-    function setOptions(id, set) {
-      const sel = document.getElementById(id);
-      sel.innerHTML = '<option value="">All</option>';
-      Array.from(set).filter(v => v).sort().forEach(v => sel.add(new Option(v, v)));
-    }
-
-    function applyIncFilters() {
-      const s = document.getElementById('searchInc').value.toLowerCase();
-      const c = document.getElementById('filterClass').value;
-      const o = document.getElementById('filterOutcome').value;
-      const j = document.getElementById('filterJob').value;
-      document.querySelectorAll('#incTable tbody tr').forEach(tr => {
-        const text = tr.innerText.toLowerCase();
-        tr.style.display = (!s || text.includes(s)) &&
-                         (!c || text.includes(c.toLowerCase())) &&
-                         (!o || text.includes(o.toLowerCase())) &&
-                         (!j || text.includes(j.toLowerCase())) ? '' : 'none';
-      });
-    }
-
-    function renderTable(id, data) {
-      const t = document.getElementById(id);
-      const thead = t.tHead || t.createTHead();
-      const tbody = t.tBodies[0] || t.createTBody();
-      thead.innerHTML = '';
-      tbody.innerHTML = '';
-      if (!data.length) return;
-      const headerRow = thead.insertRow();
-      Object.keys(data[0]).forEach(h => headerRow.insertCell().outerHTML = `<th>${h}</th>`);
-      data.forEach(r => {
-        const tr = tbody.insertRow();
-        Object.values(r).forEach(v => tr.insertCell().textContent = v || '');
-      });
-    }
-
-    function exportCSV(tableId, filename) {
-      const rows = Array.from(document.querySelectorAll(`#${tableId} tr`)).map(tr => {
-        return Array.from(tr.cells).map(td => `"${td.innerText.replace(/"/g,'""')}"`).join(',');
-      });
-      const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = filename;
-      a.click();
-    }
-
-    document.addEventListener('DOMContentLoaded', () => {
-      loadSheet('incTable','551524865');  // MASTER sheet
-      loadSheet('mhTable','1317837509');  // MAN HOURS
-      loadSheet('trirTable','1103432243'); // TRIR & LTIR
-      loadSheet('summaryTable','802303625'); // SUMMARY
+  function populateIncFilters() {
+    const cls = new Set(), out = new Set(), job = new Set();
+    incData.forEach(r => {
+      cls.add(r['INCIDENT CLASSIFICATION'] || '');
+      out.add(r['INCIDENT OUTCOME'] || '');
+      job.add(r['JOB NAME / #'] || '');
     });
-  </script>
+    setOptions('filterClass', cls);
+    setOptions('filterOutcome', out);
+    setOptions('filterJob', job);
+  }
+
+  function setOptions(id, set) {
+    const sel = document.getElementById(id);
+    sel.innerHTML = '<option value="">All</option>';
+    Array.from(set).filter(v => v).sort().forEach(v => sel.add(new Option(v, v)));
+  }
+
+  function applyIncFilters() {
+    const s = document.getElementById('searchInc').value.toLowerCase();
+    const c = document.getElementById('filterClass').value;
+    const o = document.getElementById('filterOutcome').value;
+    const j = document.getElementById('filterJob').value;
+    document.querySelectorAll('#incTable tbody tr').forEach(tr => {
+      const txt = tr.innerText.toLowerCase();
+      tr.style.display = (!s || txt.includes(s)) &&
+                         (!c || txt.includes(c.toLowerCase())) &&
+                         (!o || txt.includes(o.toLowerCase())) &&
+                         (!j || txt.includes(j.toLowerCase())) ? '' : 'none';
+    });
+  }
+
+  function renderTable(id, data) {
+    const t = document.getElementById(id);
+    if (id === 'summaryTable') return; // handled separately
+    const thead = t.tHead || t.createTHead();
+    const tbody = t.tBodies[0] || t.createTBody();
+    thead.innerHTML = '';
+    tbody.innerHTML = '';
+    if (!data.length) return;
+    const hr = thead.insertRow();
+    Object.keys(data[0]).forEach(h => hr.insertCell().outerHTML = `<th>${h}</th>`);
+    data.forEach(r => {
+      const tr = tbody.insertRow();
+      Object.values(r).forEach(v => tr.insertCell().textContent = v || '');
+    });
+  }
+
+  function renderSummary(data) {
+    const cont = document.getElementById('summaryContainer');
+    cont.innerHTML = '';
+    let block = [];
+    data.forEach(r => {
+      if (r.some(c => c)) block.push(r);
+      else if (block.length) { appendBlock(block, cont); block = []; }
+    });
+    if (block.length) appendBlock(block, cont);
+  }
+
+  function appendBlock(block, cont) {
+    const tbl = document.createElement('table');
+    const thead = document.createElement('thead');
+    const tbody = document.createElement('tbody');
+    const hr = thead.insertRow();
+    block[0].forEach(h => hr.insertCell().outerHTML = `<th>${h}</th>`);
+    block.slice(1).forEach(r => {
+      const tr = tbody.insertRow();
+      block[0].forEach((_, i) => tr.insertCell().textContent = r[i] || '');
+    });
+    tbl.appendChild(thead);
+    tbl.appendChild(tbody);
+    cont.appendChild(tbl);
+  }
+
+  function exportCSV(tableId, filename) {
+    const rows = Array.from(document.querySelectorAll(`#${tableId} tr`)).map(tr =>
+      Array.from(tr.cells).map(td => `"${td.innerText.replace(/"/g,'""')}"`).join(',')
+    );
+    const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    fetchSheet('Master Sheet');
+    fetchSheet('MAN HOURS');
+    fetchSheet('TRIR & LTIR');
+    fetchSheet('Summary Table');
+  });
+</script>
 </body>
 </html>
