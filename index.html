@@ -7,96 +7,94 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
   <style>
   :root {
-    --bg: #1C1C1C;
+    --bg-dark: #1C1C1C;
+    --bg-light: #333;
     --accent: #C8102E;
-    --text: #FFFFFF;
-    --surface: #2A2A2A;
-    --surface-light: #333333;
-    --hover: #A00F23;
+    --white: #fff;
+    --gray-light: #444;
+    --gray-lighter: #555;
   }
-  * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
-  body { background: var(--bg); color: var(--text); }
+  body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: var(--bg-dark);
+    color: var(--white);
+  }
   header {
-    background: var(--bg);
-    color: var(--text);
+    background: var(--bg-light);
+    color: var(--accent);
     padding: 15px;
     text-align: center;
     font-size: 1.5em;
-    border-bottom: 2px solid var(--accent);
   }
   .tabs {
     display: flex;
     gap: 5px;
-    background: var(--surface);
     padding: 10px;
+    background: var(--gray-light);
   }
   .tab {
     padding: 10px 15px;
-    background: var(--surface-light);
+    background: var(--gray-lighter);
     cursor: pointer;
-    color: var(--text);
+    color: var(--white);
   }
   .tab.active {
-    background: var(--bg);
-    font-weight: bold;
-    border-bottom: 3px solid var(--accent);
-  }
-  .tab:hover {
-    background: var(--surface);
+    background: var(--white);
+    font-weight:bold;
+    color: var(--bg-dark);
+    border-bottom: 2px solid var(--accent);
   }
   .tab-content {
-    display: none;
-    padding: 20px;
-    background: var(--surface-light);
+    display:none;
+    padding:20px;
+    background: var(--bg-dark);
   }
   .tab-content.active {
-    display: block;
+    display:block;
   }
-
   .controls {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-bottom: 15px;
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    margin-bottom:15px;
   }
   .controls input,
   .controls select,
   .controls button {
     padding: 8px;
     font-size: 1em;
-    border: none;
+    background: var(--gray-light);
+    color: var(--white);
+    border: 1px solid var(--gray-lighter);
     border-radius: 3px;
-  }
-  .controls input,
-  .controls select {
-    background: var(--surface);
-    color: var(--text);
   }
   .controls button {
     background: var(--accent);
-    color: var(--text);
-    cursor: pointer;
+    border: none;
   }
   .controls button:hover {
-    background: var(--hover);
+    background: darken(var(--accent), 10%);
   }
-
   table {
     width: 100%;
     border-collapse: collapse;
     margin-top: 10px;
+    background: var(--gray-light);
+    color: var(--white);
   }
   th, td {
-    border: 1px solid var(--surface);
+    border: 1px solid var(--gray-lighter);
     padding: 8px;
     text-align: left;
-    color: var(--text);
   }
   th {
-    background: var(--surface);
+    background: var(--gray-lighter);
   }
-  @media(max-width:600px) {
-    th, td { font-size: 0.9em; }
+  @media (max-width:600px) {
+    th, td {
+      font-size: 0.9em;
+    }
   }
 </style>
 
