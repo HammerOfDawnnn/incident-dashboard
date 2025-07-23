@@ -92,45 +92,41 @@
   <div class="tab" onclick="showTab('tab4')">📑 Summary Table</div>
 </div>
 
-<!-- Incident Table -->
 <div class="tab-content active" id="tab1">
   <div class="filters">
     <input type="text" id="searchBox" placeholder="Search..." oninput="applyFilters()">
-    <select id="filterClassification" onchange="applyFilters()"><option value="">All Classifications</option></select>
-    <select id="filterOutcome" onchange="applyFilters()"><option value="">All Outcomes</option></select>
-    <select id="filterJob" onchange="applyFilters()"><option value="">All Job #</option></select>
+    <select id="filterClassification" onchange="applyFilters()">
+      <option value="">All Classifications</option>
+    </select>
+    <select id="filterOutcome" onchange="applyFilters()">
+      <option value="">All Outcomes</option>
+    </select>
+    <select id="filterJob" onchange="applyFilters()">
+      <option value="">All Job #</option>
+    </select>
     <button onclick="initIncident()">🔄 Refresh</button>
     <button onclick="exportCSV('incident-data.csv', fullIncidentData)">📥 Export</button>
   </div>
-  <table id="incidentTable">
-    <thead></thead>
-    <tbody></tbody>
-  </table>
+  <table id="incidentTable"><thead></thead><tbody></tbody></table>
 </div>
 
-<!-- Man Hours -->
 <div class="tab-content" id="tab2">
   <h3>👷 Man Hours by Subcontractor</h3>
   <p>Coming soon...</p>
 </div>
 
-<!-- Incident Rates -->
 <div class="tab-content" id="tab3">
   <h3>📈 Incident Rates (TRIR, LTIR)</h3>
   <p>Coming soon...</p>
 </div>
 
-<!-- Summary Table -->
 <div class="tab-content" id="tab4">
-  <h3>📑 Executive Summary Data</h3>
+  <h3>📑 Executive Summary</h3>
   <div class="filters">
     <input type="text" id="searchSummary" placeholder="Search summary..." oninput="applySummaryFilter()">
     <button onclick="initSummary()">🔄 Refresh Summary</button>
   </div>
-  <table id="summaryTable">
-    <thead></thead>
-    <tbody></tbody>
-  </table>
+  <table id="summaryTable"><thead></thead><tbody></tbody></table>
 </div>
 
 <script>
@@ -156,6 +152,7 @@
 
   function initSummary() {
     fetchSheet('Summary Table', data => {
+      console.log('Summary data from Sheets:', data);
       fullSummaryData = data;
       renderTable('summaryTable', fullSummaryData);
     });
@@ -167,19 +164,20 @@
       .then(r => r.json())
       .then(json => {
         const rows = json.values || [];
-        if (rows.length < 1) throw 'empty sheet';
-        const [hdr, ...data] = rows;
-        const arr = data.map(r => hdr.reduce((o,h,i)=>(o[h]=r[i]||'',o),{}));
+        const arr = rows.length > 1 ? rows.slice(1).map(r => {
+          const headers = rows[0];
+          return headers.reduce((o, h, i) => (o[h] = r[i] || '', o), {});
+        }) : [];
         callback(arr);
       })
-      .catch(e => alert('Error loading "'+sheetName+'": '+e));
+      .catch(e => alert('Error loading "' + sheetName + '": ' + e));
   }
 
   function renderTable(tableId, data) {
     const table = document.getElementById(tableId);
     const th = table.querySelector('thead'), tb = table.querySelector('tbody');
     th.innerHTML = tb.innerHTML = '';
-    if (data.length === 0) {
+    if (!data.length) {
       tb.innerHTML = '<tr><td colspan="99">No data</td></tr>';
       return;
     }
@@ -203,32 +201,11 @@
     });
   }
 
-  function applyFilters() {
-    const txt = document.getElementById('searchBox').value.toLowerCase();
-    const cls = document.getElementById('filterClassification').value;
-    const out = document.getElementById('filterOutcome').value;
-    const job = document.getElementById('filterJob').value;
-    const filtered = fullIncidentData.filter(r => {
-      const rowText = JSON.stringify(Object.values(r)).toLowerCase();
-      return (!txt || rowText.includes(txt))
-          && (!cls || r['INCIDENT CLASSIFICATION'] === cls)
-          && (!out || r['INCIDENT OUTCOME'] === out)
-          && (!job || r['JOB NAME / #'] === job);
-    });
-    renderTable('incidentTable', filtered);
-  }
-
-  function applySummaryFilter() {
-    const txt = document.getElementById('searchSummary').value.toLowerCase();
-    const filtered = fullSummaryData.filter(r => JSON.stringify(Object.values(r)).toLowerCase().includes(txt));
-    renderTable('summaryTable', filtered);
-  }
-
   function populateIncidentFilters() {
     const c = document.getElementById('filterClassification'),
           o = document.getElementById('filterOutcome'),
           j = document.getElementById('filterJob');
-    [c, o, j].forEach(el => { while(el.options.length > 1) el.remove(1); });
+    [c, o, j].forEach(el => { while (el.options.length > 1) el.remove(1); });
     const sets = { c: new Set(), o: new Set(), j: new Set() };
     fullIncidentData.forEach(r => {
       if (r['INCIDENT CLASSIFICATION']) sets.c.add(r['INCIDENT CLASSIFICATION']);
@@ -240,17 +217,42 @@
     Array.from(sets.j).sort().forEach(v => j.add(new Option(v, v)));
   }
 
-  function exportCSV(fileName, data) {
+  function applyFilters() {
+    const txt = document.getElementById('searchBox').value.toLowerCase();
+    const cls = document.getElementById('filterClassification').value;
+    const out = document.getElementById('filterOutcome').value;
+    const job = document.getElementById('filterJob').value;
+    renderTable('incidentTable',
+      fullIncidentData.filter(r => {
+        const rowText = JSON.stringify(Object.values(r)).toLowerCase();
+        return (!txt || rowText.includes(txt))
+          && (!cls || r['INCIDENT CLASSIFICATION'] === cls)
+          && (!out || r['INCIDENT OUTCOME'] === out)
+          && (!job || r['JOB NAME / #'] === job);
+      })
+    );
+  }
+
+  function applySummaryFilter() {
+    const txt = document.getElementById('searchSummary').value.toLowerCase();
+    renderTable('summaryTable',
+      fullSummaryData.filter(r =>
+        JSON.stringify(Object.values(r)).toLowerCase().includes(txt)
+      )
+    );
+  }
+
+  function exportCSV(filename, data) {
     if (!data.length) return;
     const headers = Object.keys(data[0]);
-    const rows = [headers.join(',')];
+    const lines = [headers.join(',')];
     data.forEach(r => {
-      rows.push(headers.map(h => `"${(r[h]||'').replace(/"/g, '""')}"`).join(','));
+      lines.push(headers.map(h => `"${(r[h]||'').replace(/"/g, '""')}"`).join(','));
     });
-    const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = fileName;
+    a.download = filename;
     a.click();
   }
 
