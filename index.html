@@ -6,52 +6,89 @@
   <title>Incident Dashboard</title>
   <style>
     body {
-      margin: 0; font-family: "Segoe UI", sans-serif; background: #f4f6f8; color: #333;
+      margin: 0;
+      font-family: "Segoe UI", sans-serif;
+      background: #f4f6f8;
+      color: #333;
     }
     header {
-      background: #0077cc; color: white; padding: 15px 25px; font-size: 1.5em;
-      font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      background: #0077cc;
+      color: white;
+      padding: 15px 25px;
+      font-size: 1.5em;
+      font-weight: bold;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
     .tabs {
-      display: flex; background: #e9ecef; border-bottom: 1px solid #ccc;
+      display: flex;
+      background: #e9ecef;
+      border-bottom: 1px solid #ccc;
     }
     .tab {
-      padding: 10px 20px; cursor: pointer; font-weight: bold;
+      padding: 10px 20px;
+      cursor: pointer;
+      font-weight: bold;
       border-right: 1px solid #ccc;
     }
     .tab.active {
-      background: white; border-bottom: none;
+      background: white;
+      border-bottom: none;
     }
     .tab-content {
-      display: none; padding: 20px;
+      display: none;
+      padding: 20px;
     }
-    .tab-content.active { display: block; }
-
+    .tab-content.active {
+      display: block;
+    }
     .filters {
-      display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 15px;
     }
     input, select, button {
-      padding: 8px; font-size: 14px;
+      padding: 8px;
+      font-size: 14px;
     }
     button {
-      background: #007BFF; color: white; border: none; cursor: pointer;
+      background: #007BFF;
+      color: white;
+      border: none;
+      cursor: pointer;
     }
-    button:hover { background: #0056b3; }
+    button:hover {
+      background: #0056b3;
+    }
     table {
-      width: 100%; border-collapse: collapse; background: white;
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
     }
     th, td {
-      border: 1px solid #ddd; padding: 8px; text-align: left;
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
     }
     th {
-      background: #f0f0f0; position: sticky; top: 0;
+      background: #f0f0f0;
+      position: sticky;
+      top: 0;
     }
-    tr:nth-child(even) { background: #f9f9f9; }
-
-    iframe {
-      border: none;
+    tr:nth-child(even) {
+      background: #f9f9f9;
+    }
+    /* Summary iframe responsive container */
+    .iframe-wrapper {
       width: 100%;
-      height: 600px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .iframe-wrapper iframe {
+      width: 1600px;
+      max-width: 100%;
+      height: 1000px;
+      border: 0;
     }
   </style>
 </head>
@@ -94,7 +131,9 @@
 
 <div class="tab-content" id="tab4">
   <h3>📊 Executive Summary (Live from Google Sheets)</h3>
-  <iframe src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQUvMV4tvUHnxdhRaAAmmdUpGIcNC4W4MAkbz1kOdXxtsE5813CGN-xiHyYdbmspRoRrWlCzeT6CIq2/pubhtml?gid=566656137&single=true"></iframe>
+  <div class="iframe-wrapper">
+    <iframe src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQUvMV4tvUHnxdhRaAAmmdUpGIcNC4W4MAkbz1kOdXxtsE5813CGN-xiHyYdbmspRoRrWlCzeT6CIq2/pubhtml?gid=566656137&single=true"></iframe>
+  </div>
 </div>
 
 <script>
@@ -133,16 +172,16 @@
     const cSel = document.getElementById('filterClassification');
     const oSel = document.getElementById('filterOutcome');
     const jSel = document.getElementById('filterJob');
-    [cSel,oSel,jSel].forEach(el=>{ while(el.options.length>1) el.remove(1); });
-    const seen = {c:new Set(),o:new Set(),j:new Set()};
+    [cSel, oSel, jSel].forEach(el => { while (el.options.length > 1) el.remove(1); });
+    const seen = { c: new Set(), o: new Set(), j: new Set() };
     fullData.forEach(r => {
-      if(r['INCIDENT CLASSIFICATION']) seen.c.add(r['INCIDENT CLASSIFICATION']);
-      if(r['INCIDENT OUTCOME']) seen.o.add(r['INCIDENT OUTCOME']);
-      if(r['JOB NAME / #']) seen.j.add(r['JOB NAME / #']);
+      if (r['INCIDENT CLASSIFICATION']) seen.c.add(r['INCIDENT CLASSIFICATION']);
+      if (r['INCIDENT OUTCOME']) seen.o.add(r['INCIDENT OUTCOME']);
+      if (r['JOB NAME / #']) seen.j.add(r['JOB NAME / #']);
     });
-    for(const val of Array.from(seen.c).sort()) cSel.add(new Option(val,val));
-    for(const val of Array.from(seen.o).sort()) oSel.add(new Option(val,val));
-    for(const val of Array.from(seen.j).sort()) jSel.add(new Option(val,val));
+    for (const val of Array.from(seen.c).sort()) cSel.add(new Option(val, val));
+    for (const val of Array.from(seen.o).sort()) oSel.add(new Option(val, val));
+    for (const val of Array.from(seen.j).sort()) jSel.add(new Option(val, val));
   }
 
   function applyFilters() {
@@ -153,9 +192,9 @@
     const filtered = fullData.filter(row => {
       const rowText = JSON.stringify(Object.values(row)).toLowerCase();
       return (!txt || rowText.includes(txt)) &&
-             (!cls || row['INCIDENT CLASSIFICATION'] === cls) &&
-             (!out || row['INCIDENT OUTCOME'] === out) &&
-             (!job || row['JOB NAME / #'] === job);
+        (!cls || row['INCIDENT CLASSIFICATION'] === cls) &&
+        (!out || row['INCIDENT OUTCOME'] === out) &&
+        (!job || row['JOB NAME / #'] === job);
     });
     renderTable(filtered);
   }
@@ -165,9 +204,9 @@
     const th = t.querySelector('thead'), tb = t.querySelector('tbody');
     th.innerHTML = tb.innerHTML = '';
     const hRow = document.createElement('tr');
-    currentHeaders.forEach(h=> {
-      const cell=document.createElement('th');
-      cell.textContent=h;
+    currentHeaders.forEach(h => {
+      const cell = document.createElement('th');
+      cell.textContent = h;
       hRow.appendChild(cell);
     });
     th.appendChild(hRow);
@@ -183,13 +222,13 @@
   }
 
   function exportCSV() {
-    const rows = [['"'+currentHeaders.join('","')+'"']];
-    document.querySelectorAll('#dataTable tbody tr').forEach(tr=>{
-      if(tr.style.display==='none') return;
-      const vals = Array.from(tr.children).map(td=>'""'+td.textContent.replace(/"/g,'""')+'""');
+    const rows = [['"' + currentHeaders.join('","') + '"']];
+    document.querySelectorAll('#dataTable tbody tr').forEach(tr => {
+      if (tr.style.display === 'none') return;
+      const vals = Array.from(tr.children).map(td => '""' + td.textContent.replace(/"/g, '""') + '""');
       rows.push([vals.join(',')]);
     });
-    const blob = new Blob([rows.join('\n')], {type: 'text/csv'});
+    const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = 'incident-data.csv';
