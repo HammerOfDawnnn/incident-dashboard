@@ -6,20 +6,100 @@
   <title>Incident Dashboard</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
   <style>
-    body { margin:0; font-family:Arial,sans-serif; background:#f4f6f8; color:#333; }
-    header{background:#0077cc;color:#fff;padding:15px;text-align:center;font-size:1.5em;}
-    .tabs{display:flex;gap:5px;padding:10px;background:#e9ecef;}
-    .tab{padding:10px 15px;background:#ddd;cursor:pointer;}
-    .tab.active{background:#fff;font-weight:bold;border-bottom:2px solid #0077cc;}
-    .tab-content{display:none;padding:20px;background:#fff;}
-    .tab-content.active{display:block;}
-    .controls{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:15px;}
-    .controls input,.controls select, .controls button{padding:8px;font-size:1em;}
-    table{width:100%;border-collapse:collapse;margin-top:10px;}
-    th,td{border:1px solid #ccc;padding:8px;text-align:left;}
-    th{background:#f0f0f0;}
-    @media(max-width:600px){th,td{font-size:0.9em;}}
-  </style>
+  :root {
+    --bg: #1C1C1C;
+    --accent: #C8102E;
+    --text: #FFFFFF;
+    --surface: #2A2A2A;
+    --surface-light: #333333;
+    --hover: #A00F23;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
+  body { background: var(--bg); color: var(--text); }
+  header {
+    background: var(--bg);
+    color: var(--text);
+    padding: 15px;
+    text-align: center;
+    font-size: 1.5em;
+    border-bottom: 2px solid var(--accent);
+  }
+  .tabs {
+    display: flex;
+    gap: 5px;
+    background: var(--surface);
+    padding: 10px;
+  }
+  .tab {
+    padding: 10px 15px;
+    background: var(--surface-light);
+    cursor: pointer;
+    color: var(--text);
+  }
+  .tab.active {
+    background: var(--bg);
+    font-weight: bold;
+    border-bottom: 3px solid var(--accent);
+  }
+  .tab:hover {
+    background: var(--surface);
+  }
+  .tab-content {
+    display: none;
+    padding: 20px;
+    background: var(--surface-light);
+  }
+  .tab-content.active {
+    display: block;
+  }
+
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 15px;
+  }
+  .controls input,
+  .controls select,
+  .controls button {
+    padding: 8px;
+    font-size: 1em;
+    border: none;
+    border-radius: 3px;
+  }
+  .controls input,
+  .controls select {
+    background: var(--surface);
+    color: var(--text);
+  }
+  .controls button {
+    background: var(--accent);
+    color: var(--text);
+    cursor: pointer;
+  }
+  .controls button:hover {
+    background: var(--hover);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+  }
+  th, td {
+    border: 1px solid var(--surface);
+    padding: 8px;
+    text-align: left;
+    color: var(--text);
+  }
+  th {
+    background: var(--surface);
+  }
+  @media(max-width:600px) {
+    th, td { font-size: 0.9em; }
+  }
+</style>
+
 </head>
 <body>
   <header>🚧 Incident Dashboard</header>
