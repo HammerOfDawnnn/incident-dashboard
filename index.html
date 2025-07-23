@@ -199,7 +199,14 @@
       });
       ['incidentClassification','incidentOutcome','incidentJob'].forEach((id, i) => {
         const sel = document.getElementById(id);
-        sel.innerHTML = `<option value="">All ${sel.placeholder || id.split(/(?=[A-Z])/).join(' ')}</option>`;
+       const labelMap = {
+  incidentClassification: 'Sort by Classification',
+  incidentOutcome: 'Sort by Outcome',
+  incidentJob: 'Sort by Job Name / #'
+};
+
+sel.innerHTML = `<option value="">${labelMap[id]}</option>`;
+
         Array.from(sets[['cls','out','job'][i]]).sort().forEach(val =>
           sel.add(new Option(val, val))
         );
