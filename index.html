@@ -316,6 +316,23 @@
     a.href=URL.createObjectURL(blob);
     a.click();
   }
+  // Sorting for Incident Table
+  let sortState = { column: null, ascending: true };
+
+  document.getElementById('incidentTable').addEventListener('click', e => {
+    if (e.target.tagName !== 'TH') return;
+    const column = e.target.textContent;
+    sortState.ascending = sortState.column === column ? !sortState.ascending : true;
+    sortState.column = column;
+    fullIncidentData.sort((a, b) => {
+      const valA = (a[column] || '').toLowerCase();
+      const valB = (b[column] || '').toLowerCase();
+      if (valA < valB) return sortState.ascending ? -1 : 1;
+      if (valA > valB) return sortState.ascending ? 1 : -1;
+      return 0;
+    });
+    applyIncidentFilters(); // reapply filters and refresh
+  });
 
   // Initialize all
   window.onload = () => {
