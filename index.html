@@ -5,6 +5,12 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Incident Dashboard</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+  <!-- === ADDED: For Column Sorting ONLY === -->
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css"/>
+  <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+
   <style>
   :root {
     --bg-dark: #1C1C1C;
@@ -131,14 +137,13 @@
   </div>
 
   <!-- TRIR & LTIR -->
-<div id="incidentRates" class="tab-content">
-  <div class="controls">
-    <button id="ratesRefresh">🔄 Refresh Rates</button>
-    <button id="ratesExport">📥 Export CSV</button>
+  <div id="incidentRates" class="tab-content">
+    <div class="controls">
+      <button id="ratesRefresh">🔄 Refresh Rates</button>
+      <button id="ratesExport">📥 Export CSV</button>
+    </div>
+    <table id="ratesTable"><thead></thead><tbody></tbody></table>
   </div>
-  <table id="ratesTable"><thead></thead><tbody></tbody></table>
-</div>
-
 
   <!-- Summary -->
   <div id="summary" class="tab-content">
@@ -253,8 +258,7 @@
         });
         if(block.length) tables.push(block);
         renderSummary(tables);
-      },
-      error: err=>alert('Summary load error: '+err)
+      }, error: err=>alert('Summary load error: '+err)
     });
   }
 
@@ -266,7 +270,7 @@
       const h2 = document.createElement('h2'); h2.textContent = tbl[0][0];
       block.appendChild(h2);
       const t = document.createElement('table'),
-      thead = document.createElement('thead'), tbody = document.createElement('tbody');
+        thead = document.createElement('thead'), tbody = document.createElement('tbody');
       tbl[0].forEach(c=>thead.appendChild(Object.assign(document.createElement('th'),{textContent:c})));
       tbl.slice(1).forEach(r=>{
         const tr = document.createElement('tr');
@@ -294,37 +298,42 @@
   }
 
   function renderTable(tableId, data) {
-    const t = document.getElementById(tableId), head=t.tHead, body=t.tBodies[0]||t.createTBody();
-    head.innerHTML=''; body.innerHTML='';
-    if(!data.length){body.innerHTML='<tr><td colspan="99">No data</td></tr>';return;}
-    const hdrs=Object.keys(data[0]);
-    const hRow=head.insertRow();
-    hdrs.forEach(h=>hRow.insertCell().outerHTML=`<th>${h}</th>`);
-    data.forEach(r=>{
-      const row=body.insertRow();
-      hdrs.forEach(h=>row.insertCell().textContent=r[h]);
+    const t = document.getElementById(tableId),
+          head = t.tHead, body = t.tBodies[0] || t.createTBody();
+    head.innerHTML = ''; body.innerHTML = '';
+    if (!data.length) {
+      body.innerHTML = '<tr><td colspan="99">No data</td></tr>';
+      return;
+    }
+    const hdrs = Object.keys(data[0]);
+    const hRow = head.insertRow();
+    hdrs.forEach(h => hRow.insertCell().outerHTML = `<th>${h}</th>`);
+    data.forEach(r => { const row = body.insertRow(); hdrs.forEach(h => row.insertCell().textContent = r[h]); });
+    if (['incidentTable','manHoursTable','ratesTable'].includes(tableId)) { updateAllTables(); }
+  }
+
+  function updateAllTables() {
+    ['incidentTable','manHoursTable','ratesTable'].forEach(id => {
+      const sel = '#' + id;
+      if ($.fn.DataTable.isDataTable(sel)) { $(sel).DataTable().destroy(); }
+      $(sel).DataTable({ paging:false, info:false, ordering:true, order:[], responsive:true });
     });
   }
 
   function exportCSV(fn,data){
-    if(!data.length)return;
-    const hdr=Object.keys(data[0]).join(','),
-          rows=data.map(r=>Object.values(r).map(v=>`"${v.replace(/"/g,'""')}"`).join(',')).join('\n');
-    const blob=new Blob([hdr+'\n'+rows],{type:'text/csv'});
-    const a=document.createElement('a');
-    a.download=fn;
-    a.href=URL.createObjectURL(blob);
-    a.click();
+    if(!data.length) return;
+    const hdr = Object.keys(data[0]).join(','), rows = data.map(r => Object.values(r).map(v => `"${v.replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob([hdr+'\n'+rows],{type:'text/csv'});
+    const a=document.createElement('a'); a.download=fn; a.href=URL.createObjectURL(blob); a.click();
   }
 
-  // Initialize all
   window.onload = () => {
     initIncidents();
     initManHours();
     initSummary();
-    initRates(); // 👈 Include the new worksheet on page load
+    initRates();
   }
-</script>
+  </script>
 
 </body>
 </html>
