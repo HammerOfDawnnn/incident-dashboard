@@ -101,7 +101,30 @@
   th {
     background: var(--gray-lighter);
   }
-  @media (max-width:600px) {
+  .loader-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  display: none;
+}
+
+.spinner {
+  border: 6px solid #ccc;
+  border-top: 6px solid var(--accent);
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+    @media (max-width:600px) {
     th, td {
       font-size: 0.9em;
     }
@@ -157,6 +180,12 @@
     </div>
     <div id="summaryContainer"></div>
   </div>
+  
+  <!-- Loader -->
+  <div id="loader" class="loader-overlay">
+  <div class="spinner"></div>
+</div>
+
 
   <script>
   const SHEET_ID = '1iMo8gWO3z9UW3f_qInMJ2z5k9h1XiRhGrkLlAZWI-n4';
@@ -326,6 +355,12 @@
     a.href=URL.createObjectURL(blob);
     a.click();
   }
+    
+  // Show / Hide Logic
+    function toggleLoader(show = true) {
+  document.getElementById('loader').style.display = show ? 'flex' : 'none';
+  }
+
   // Sorting for Incident Table
   let sortState = { column: null, ascending: true };
 
