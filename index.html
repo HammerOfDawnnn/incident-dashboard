@@ -103,7 +103,6 @@
   th {
     background: var(--gray-lighter);
   }
-  /* --- Added enhancements start --- */
   button, .tab, input, select {
     transition: all 0.2s ease-in-out;
   }
@@ -131,7 +130,6 @@
   .table-wrapper {
     overflow-x: auto;
   }
-  /* --- Added enhancements end --- */
   .loader-overlay {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
@@ -158,6 +156,18 @@
       font-size: 0.9em;
     }
   }
+  .chart-wrapper {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    justify-content: center;
+    margin-top: 20px;
+  }
+  .chart-wrapper iframe {
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+  }
 </style>
 
 </head>
@@ -168,6 +178,26 @@
     <div class="tab" data-tab="manHours">👷 Man Hours</div>
     <div class="tab" data-tab="incidentRates">📈 Incident Rates</div>
     <div class="tab" data-tab="summary">📑 Summary Tables</div>
+    <div class="tab" data-tab="charts">🧩 Utilization</div>
+  </div>
+
+  <!-- Charts -->
+  <div id="charts" class="tab-content">
+    <div class="controls">
+      <p style="margin:0">📊 Real-Time Utilization</p>
+    </div>
+    <div class="chart-wrapper">
+      <iframe width="600" height="371" seamless frameborder="0" scrolling="no"
+        src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQUvMV4tvUHnxdhRaAAmmdUpGIcNC4W4MAkbz1kOdXxtsE5813CGN-xiHyYdbmspRoRrWlCzeT6CIq2/pubchart?oid=2031563893&amp;format=interactive"></iframe>
+      <iframe width="600" height="371" seamless frameborder="0" scrolling="no"
+        src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQUvMV4tvUHnxdhRaAAmmdUpGIcNC4W4MAkbz1kOdXxtsE5813CGN-xiHyYdbmspRoRrWlCzeT6CIq2/pubchart?oid=529602498&amp;format=interactive"></iframe>
+      <iframe width="600" height="371" seamless frameborder="0" scrolling="no"
+        src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQUvMV4tvUHnxdhRaAAmmdUpGIcNC4W4MAkbz1kOdXxtsE5813CGN-xiHyYdbmspRoRrWlCzeT6CIq2/pubchart?oid=1216575399&amp;format=interactive"></iframe>
+      <iframe width="613" height="371" seamless frameborder="0" scrolling="no"
+        src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQUvMV4tvUHnxdhRaAAmmdUpGIcNC4W4MAkbz1kOdXxtsE5813CGN-xiHyYdbmspRoRrWlCzeT6CIq2/pubchart?oid=1357486766&amp;format=interactive"></iframe>
+      <iframe width="600" height="371" seamless frameborder="0" scrolling="no"
+        src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQUvMV4tvUHnxdhRaAAmmdUpGIcNC4W4MAkbz1kOdXxtsE5813CGN-xiHyYdbmspRoRrWlCzeT6CIq2/pubchart?oid=1892770215&amp;format=interactive"></iframe>
+    </div>
   </div>
 
   <!-- Incident Table -->
@@ -197,16 +227,15 @@
   </div>
 
   <!-- TRIR & LTIR -->
-<div id="incidentRates" class="tab-content">
-  <div class="controls">
-    <button id="ratesRefresh">🔄 Refresh Rates</button>
-    <button id="ratesExport">📥 Export CSV</button>
+  <div id="incidentRates" class="tab-content">
+    <div class="controls">
+      <button id="ratesRefresh">🔄 Refresh Rates</button>
+      <button id="ratesExport">📥 Export CSV</button>
+    </div>
+    <div class="table-wrapper">
+      <table id="ratesTable"><thead></thead><tbody></tbody></table>
+    </div>
   </div>
-  <div class="table-wrapper">
-    <table id="ratesTable"><thead></thead><tbody></tbody></table>
-  </div>
-</div>
-
 
   <!-- Summary -->
   <div id="summary" class="tab-content">
@@ -221,215 +250,206 @@
     <div class="spinner"></div>
   </div>
 
+<script>
+const SHEET_ID = '1iMo8gWO3z9UW3f_qInMJ2z5k9h1XiRhGrkLlAZWI-n4';
+const API_KEY = 'AIzaSyDWcMK3AUseaJT5r3c031n0bSiqpxaz4bo';
+let fullIncidentData = [], fullManHoursData = [], fullRatesData = [];
 
-  <script>
-  const SHEET_ID = '1iMo8gWO3z9UW3f_qInMJ2z5k9h1XiRhGrkLlAZWI-n4';
-  const API_KEY = 'AIzaSyDWcMK3AUseaJT5r3c031n0bSiqpxaz4bo';
-  let fullIncidentData = [], fullManHoursData = [], fullRatesData = [];
-
-  // Tab switching
-  document.querySelectorAll('.tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-      document.querySelectorAll('.tab, .tab-content').forEach(el => el.classList.remove('active'));
-      tab.classList.add('active');
-      document.getElementById(tab.dataset.tab).classList.add('active');
-    });
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab, .tab-content').forEach(el => el.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById(tab.dataset.tab).classList.add('active');
   });
+});
 
-  // Incident logic
-  document.getElementById('incidentSearch').addEventListener('input', applyIncidentFilters);
-  ['incidentClassification','incidentOutcome','incidentJob'].forEach(id =>
-    document.getElementById(id).addEventListener('change', applyIncidentFilters)
-  );
-  document.getElementById('impactRefresh').addEventListener('click', initIncidents);
-  document.getElementById('incidentExport').addEventListener('click', () => exportCSV('incidents.csv', fullIncidentData));
+document.getElementById('incidentSearch').addEventListener('input', applyIncidentFilters);
+['incidentClassification','incidentOutcome','incidentJob'].forEach(id =>
+  document.getElementById(id).addEventListener('change', applyIncidentFilters)
+);
+document.getElementById('impactRefresh').addEventListener('click', initIncidents);
+document.getElementById('incidentExport').addEventListener('click', () => exportCSV('incidents.csv', fullIncidentData));
 
-  function initIncidents() {
-    toggleLoader(true);
-    fetchSheet('Master Sheet', data => {
-      fullIncidentData = data;
-      populateIncidentFilters();
-      applyIncidentFilters(); 
-      toggleLoader(false);
-    });
-  }
+function initIncidents() {
+  toggleLoader(true);
+  fetchSheet('Master Sheet', data => {
+    fullIncidentData = data;
+    populateIncidentFilters();
+    applyIncidentFilters(); 
+    toggleLoader(false);
+  });
+}
 
-  function applyIncidentFilters() {
-    let filtered = fullIncidentData.slice();
-    const text = document.getElementById('incidentSearch').value.toLowerCase();
-    const cls = document.getElementById('incidentClassification').value;
-    const out = document.getElementById('incidentOutcome').value;
-    const job = document.getElementById('incidentJob').value;
+function applyIncidentFilters() {
+  let filtered = fullIncidentData.slice();
+  const text = document.getElementById('incidentSearch').value.toLowerCase();
+  const cls = document.getElementById('incidentClassification').value;
+  const out = document.getElementById('incidentOutcome').value;
+  const job = document.getElementById('incidentJob').value;
 
-    filtered = filtered.filter(r => {
-      const rowStr = JSON.stringify(Object.values(r)).toLowerCase();
-      return (!text || rowStr.includes(text))
-        && (!cls || r['INCIDENT CLASSIFICATION'] === cls)
-        && (!out || r['INCIDENT OUTCOME'] === out)
-        && (!job || r['JOB NAME / #'] === job);
-    });
-    renderTable('incidentTable', filtered);
-  }
+  filtered = filtered.filter(r => {
+    const rowStr = JSON.stringify(Object.values(r)).toLowerCase();
+    return (!text || rowStr.includes(text))
+      && (!cls || r['INCIDENT CLASSIFICATION'] === cls)
+      && (!out || r['INCIDENT OUTCOME'] === out)
+      && (!job || r['JOB NAME / #'] === job);
+  });
+  renderTable('incidentTable', filtered);
+}
 
-  function populateIncidentFilters() {
-    const sets = {cls: new Set(), out: new Set(), job: new Set()};
-    fullIncidentData.forEach(r => {
-      if(r['INCIDENT CLASSIFICATION']) sets.cls.add(r['INCIDENT CLASSIFICATION']);
-      if(r['INCIDENT OUTCOME']) sets.out.add(r['INCIDENT OUTCOME']);
-      if(r['JOB NAME / #']) sets.job.add(r['JOB NAME / #']);
-    });
-    ['incidentClassification','incidentOutcome','incidentJob'].forEach((id, i) => {
-      const sel = document.getElementById(id);
-      const labelMap = {
-        incidentClassification: 'Sort by Classification',
-        incidentOutcome: 'Sort by Outcome',
-        incidentJob: 'Sort by Job Name / #'
-      };
-      sel.innerHTML = `<option value="">${labelMap[id]}</option>`;
-      Array.from(sets[['cls','out','job'][i]]).sort().forEach(val =>
-        sel.add(new Option(val, val))
-      );
-    });
-  }
+function populateIncidentFilters() {
+  const sets = {cls: new Set(), out: new Set(), job: new Set()};
+  fullIncidentData.forEach(r => {
+    if(r['INCIDENT CLASSIFICATION']) sets.cls.add(r['INCIDENT CLASSIFICATION']);
+    if(r['INCIDENT OUTCOME']) sets.out.add(r['INCIDENT OUTCOME']);
+    if(r['JOB NAME / #']) sets.job.add(r['JOB NAME / #']);
+  });
+  ['incidentClassification','incidentOutcome','incidentJob'].forEach((id, i) => {
+    const sel = document.getElementById(id);
+    const labelMap = {
+      incidentClassification: 'Sort by Classification',
+      incidentOutcome: 'Sort by Outcome',
+      incidentJob: 'Sort by Job Name / #'
+    };
+    sel.innerHTML = `<option value="">${labelMap[id]}</option>`;
+    Array.from(sets[['cls','out','job'][i]]).sort().forEach(val =>
+      sel.add(new Option(val, val))
+    );
+  });
+}
 
-  // Man Hours
-  document.getElementById('manHoursRefresh').addEventListener('click', initManHours);
-  document.getElementById('manHoursExport').addEventListener('click', () => exportCSV('man-hours.csv', fullManHoursData));
+document.getElementById('manHoursRefresh').addEventListener('click', initManHours);
+document.getElementById('manHoursExport').addEventListener('click', () => exportCSV('man-hours.csv', fullManHoursData));
 
-  function initManHours() {
-    toggleLoader(true);
-    fetchSheet('MAN HOURS', data => {
-      fullManHoursData = data;
-      renderTable('manHoursTable', data);
-      toggleLoader(false);
-    });
-  }
+function initManHours() {
+  toggleLoader(true);
+  fetchSheet('MAN HOURS', data => {
+    fullManHoursData = data;
+    renderTable('manHoursTable', data);
+    toggleLoader(false);
+  });
+}
 
-  // TRIR & LTIR
-  document.getElementById('ratesRefresh').addEventListener('click', initRates);
-  document.getElementById('ratesExport').addEventListener('click', () => exportCSV('trir-ltir.csv', fullRatesData));
+document.getElementById('ratesRefresh').addEventListener('click', initRates);
+document.getElementById('ratesExport').addEventListener('click', () => exportCSV('trir-ltir.csv', fullRatesData));
 
-  function initRates() {
-    toggleLoader(true);
-    fetchSheet('TRIR & LTIR', data => {
-      fullRatesData = data;
-      renderTable('ratesTable', data);
-      toggleLoader(false);
-    });
-  }
+function initRates() {
+  toggleLoader(true);
+  fetchSheet('TRIR & LTIR', data => {
+    fullRatesData = data;
+    renderTable('ratesTable', data);
+    toggleLoader(false);
+  });
+}
 
-  // Summary
-  document.getElementById('summaryRefresh').addEventListener('click', initSummary);
+document.getElementById('summaryRefresh').addEventListener('click', initSummary);
 
-  function initSummary() {
-    toggleLoader(true);
-    Papa.parse(`https://docs.google.com/spreadsheets/d/e/2PACX-1vQUvMV4tvUHnxdhRaAAmmdUpGIcNC4W4MAkbz1kOdXxtsE5813CGN-xiHyYdbmspRoRrWlCzeT6CIq2/pub?gid=566656137&single=true&output=csv`, {
-      download: true, header: false, skipEmptyLines: false,
-      complete: res => {
-        const tables=[], data=res.data, block=[];
-        data.forEach(row=>{
-          const has = row.some(c=>c!=null && c.toString().trim());
-          if(has) block.push(row);
-          else if(block.length){tables.push(block); block=[];}
-        });
-        if(block.length) tables.push(block);
-        renderSummary(tables);
-        toggleLoader(false);
-      },
-      error: err=>{ alert('Summary load error: '+err); toggleLoader(false); }
-    });
-  }
-
-  function renderSummary(tables) {
-    const cont = document.getElementById('summaryContainer');
-    cont.innerHTML = '';
-    tables.forEach(tbl=>{
-      const block = document.createElement('div'); block.className='table-block';
-      const h2 = document.createElement('h2'); h2.textContent = tbl[0][0];
-      block.appendChild(h2);
-      const t = document.createElement('table'),
-      thead = document.createElement('thead'), tbody = document.createElement('tbody');
-      tbl[0].forEach(c=>thead.appendChild(Object.assign(document.createElement('th'),{textContent:c})));
-      tbl.slice(1).forEach(r=>{
-        const tr = document.createElement('tr');
-        tbl[0].forEach((_,i)=>tr.appendChild(Object.assign(document.createElement('td'),{textContent:r[i]||''})));
-        tbody.appendChild(tr);
+function initSummary() {
+  toggleLoader(true);
+  Papa.parse(`https://docs.google.com/spreadsheets/d/e/2PACX-1vQUvMV4tvUHnxdhRaAAmmdUpGIcNC4W4MAkbz1kOdXxtsE5813CGN-xiHyYdbmspRoRrWlCzeT6CIq2/pub?gid=566656137&single=true&output=csv`, {
+    download: true, header: false, skipEmptyLines: false,
+    complete: res => {
+      const tables=[], data=res.data, block=[];
+      data.forEach(row=>{
+        const has = row.some(c=>c!=null && c.toString().trim());
+        if(has) block.push(row);
+        else if(block.length){tables.push(block); block=[];}
       });
-      t.appendChild(thead); t.appendChild(tbody); block.appendChild(t); cont.appendChild(block);
-    });
-  }
-
-  // Utility functions
-  function fetchSheet(name, cb){
-    fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(name)}?key=${API_KEY}`)
-      .then(r=>r.json())
-      .then(json=>{
-        const hdr = json.values?.[0]||[], rows=json.values?.slice(1)||[];
-        const data = rows.map(r=>{
-          const o={};
-          hdr.forEach((h,i)=>o[h]=r[i]||'');
-          return o;
-        });
-        cb(data);
-      })
-      .catch(e=>alert(`Error loading ${name}: ${e}`));
-  }
-
-  function renderTable(tableId, data) {
-    const t = document.getElementById(tableId), head=t.tHead, body=t.tBodies[0]||t.createTBody();
-    head.innerHTML=''; body.innerHTML='';
-    if(!data.length){body.innerHTML='<tr><td colspan="99">No data</td></tr>';return;}
-    const hdrs=Object.keys(data[0]);
-    const hRow=head.insertRow();
-    hdrs.forEach(h=>hRow.insertCell().outerHTML=`<th>${h}</th>`);
-    data.forEach(r=>{
-      const row=body.insertRow();
-      hdrs.forEach(h=>row.insertCell().textContent=r[h]);
-    });
-  }
-
-  function exportCSV(fn,data){
-    if(!data.length)return;
-    const hdr=Object.keys(data[0]).join(','),
-          rows=data.map(r=>Object.values(r).map(v=>`"${v.replace(/"/g,'""')}"`).join(',')).join('\n');
-    const blob=new Blob([hdr+'\n'+rows],{type:'text/csv'});
-    const a=document.createElement('a');
-    a.download=fn;
-    a.href=URL.createObjectURL(blob);
-    a.click();
-  }
-    
-  // Show / Hide Logic
-  function toggleLoader(show = true) {
-    document.getElementById('loader').style.display = show ? 'flex' : 'none';
-  }
-
-  // Sorting for Incident Table
-  let sortState = { column: null, ascending: true };
-
-  document.getElementById('incidentTable').addEventListener('click', e => {
-    if (e.target.tagName !== 'TH') return;
-    const column = e.target.textContent;
-    sortState.ascending = sortState.column === column ? !sortState.ascending : true;
-    sortState.column = column;
-    fullIncidentData.sort((a, b) => {
-      const valA = (a[column] || '').toLowerCase();
-      const valB = (b[column] || '').toLowerCase();
-      if (valA < valB) return sortState.ascending ? -1 : 1;
-      if (valA > valB) return sortState.ascending ? 1 : -1;
-      return 0;
-    });
-    applyIncidentFilters(); // reapply filters and refresh
+      if(block.length) tables.push(block);
+      renderSummary(tables);
+      toggleLoader(false);
+    },
+    error: err=>{ alert('Summary load error: '+err); toggleLoader(false); }
   });
+}
 
-  // Initialize all
-  window.onload = () => {
-    initIncidents();
-    initManHours();
-    initSummary();
-    initRates(); // 👈 Include the new worksheet on page load
-  }
+function renderSummary(tables) {
+  const cont = document.getElementById('summaryContainer');
+  cont.innerHTML = '';
+  tables.forEach(tbl=>{
+    const block = document.createElement('div'); block.className='table-block';
+    const h2 = document.createElement('h2'); h2.textContent = tbl[0][0];
+    block.appendChild(h2);
+    const t = document.createElement('table'),
+    thead = document.createElement('thead'), tbody = document.createElement('tbody');
+    tbl[0].forEach(c=>thead.appendChild(Object.assign(document.createElement('th'),{textContent:c})));
+    tbl.slice(1).forEach(r=>{
+      const tr = document.createElement('tr');
+      tbl[0].forEach((_,i)=>tr.appendChild(Object.assign(document.createElement('td'),{textContent:r[i]||''})));
+      tbody.appendChild(tr);
+    });
+    t.appendChild(thead); t.appendChild(tbody); block.appendChild(t); cont.appendChild(block);
+  });
+}
+
+function fetchSheet(name, cb){
+  fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(name)}?key=${API_KEY}`)
+    .then(r=>r.json())
+    .then(json=>{
+      const hdr = json.values?.[0]||[], rows=json.values?.slice(1)||[];
+      const data = rows.map(r=>{
+        const o={};
+        hdr.forEach((h,i)=>o[h]=r[i]||'');
+        return o;
+      });
+      cb(data);
+    })
+    .catch(e=>alert(`Error loading ${name}: ${e}`));
+}
+
+function renderTable(tableId, data) {
+  const t = document.getElementById(tableId), head=t.tHead, body=t.tBodies[0]||t.createTBody();
+  head.innerHTML=''; body.innerHTML='';
+  if(!data.length){body.innerHTML='<tr><td colspan="99">No data</td></tr>';return;}
+  const hdrs=Object.keys(data[0]);
+  const hRow=head.insertRow();
+  hdrs.forEach(h=>hRow.insertCell().outerHTML=`<th>${h}</th>`);
+  data.forEach(r=>{
+    const row=body.insertRow();
+    hdrs.forEach(h=>row.insertCell().textContent=r[h]);
+  });
+}
+
+function exportCSV(fn,data){
+  if(!data.length)return;
+  const hdr=Object.keys(data[0]).join(','),
+        rows=data.map(r=>Object.values(r).map(v=>`"${v.replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob=new Blob([hdr+'\n'+rows],{type:'text/csv'});
+  const a=document.createElement('a');
+  a.download=fn;
+  a.href=URL.createObjectURL(blob);
+  a.click();
+}
+
+function toggleLoader(show = true) {
+  document.getElementById('loader').style.display = show ? 'flex' : 'none';
+}
+
+let sortState = { column: null, ascending: true };
+
+document.getElementById('incidentTable').addEventListener('click', e => {
+  if (e.target.tagName !== 'TH') return;
+  const column = e.target.textContent;
+  sortState.ascending = sortState.column === column ? !sortState.ascending : true;
+  sortState.column = column;
+  fullIncidentData.sort((a, b) => {
+    const valA = (a[column] || '').toLowerCase();
+    const valB = (b[column] || '').toLowerCase();
+    if (valA < valB) return sortState.ascending ? -1 : 1;
+    if (valA > valB) return sortState.ascending ? 1 : -1;
+    return 0;
+  });
+  applyIncidentFilters();
+});
+
+window.onload = () => {
+  initIncidents();
+  initManHours();
+  initSummary();
+  initRates();
+}
 </script>
 
 </body>
 </html>
+
