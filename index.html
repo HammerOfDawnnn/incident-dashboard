@@ -199,15 +199,17 @@
     align-items: center;
   }
 
-  .chart-wrapper iframe {
-  width: 100%;
-  height: 100%;
-  aspect-ratio: 16 / 10;
-  max-width: 100%;
-  border: none;
-  display: block;
-  margin: 10px auto;
+    .chart-wrapper iframe {
+    width: 100%;
+    max-width: 100%;
+    border: none;
+    display: block;
+    margin: 10px auto;
+    aspect-ratio: 16 / 9;
+    height: auto;
+    min-height: 300px;
   }
+
 
   .table-wrapper {
     overflow-x: auto;
@@ -233,20 +235,19 @@
     <div class="tab" data-tab="incidentRates">📈 Incident Rates</div>
     <div class="tab" data-tab="summary">📑 Summary Tables</div>
     <div class="tab" data-tab="charts">🧩 Utilization</div>
-  </div>
-
+    </div>
+  
+<!-- Start of charts tab content -->
+<div id="charts" class="tab-content">
+  <div class="controls">
+    <p style="margin:0">📊 Real-Time Utilization</p>
+  </div>  
   <div class="chart-wrapper">
     <iframe src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQUvMV4tvUHnxdhRaAAmmdUpGIcNC4W4MAkbz1kOdXxtsE5813CGN-xiHyYdbmspRoRrWlCzeT6CIq2/pubchart?oid=2031563893&format=interactive"
-    style="width:100%; height: 420px; border: none;"></iframe>
     <iframe src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQUvMV4tvUHnxdhRaAAmmdUpGIcNC4W4MAkbz1kOdXxtsE5813CGN-xiHyYdbmspRoRrWlCzeT6CIq2/pubchart?oid=529602498&format=interactive"
-    style="width:100%; height: 420px; border: none;"></iframe>
     <iframe src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQUvMV4tvUHnxdhRaAAmmdUpGIcNC4W4MAkbz1kOdXxtsE5813CGN-xiHyYdbmspRoRrWlCzeT6CIq2/pubchart?oid=1216575399&format=interactive"
-    style="width:100%; height: 420px; border: none;"></iframe>
     <iframe src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQUvMV4tvUHnxdhRaAAmmdUpGIcNC4W4MAkbz1kOdXxtsE5813CGN-xiHyYdbmspRoRrWlCzeT6CIq2/pubchart?oid=1357486766&format=interactive"
-    style="width:100%; height: 420px; border: none;"></iframe>
     <iframe src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQUvMV4tvUHnxdhRaAAmmdUpGIcNC4W4MAkbz1kOdXxtsE5813CGN-xiHyYdbmspRoRrWlCzeT6CIq2/pubchart?oid=1892770215&format=interactive"
-    style="width:100%; height: 420px; border: none;"></iframe>
-  </div>
 </div>
   
 
