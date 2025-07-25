@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Incident Dashboard</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <!-- Added modern font -->
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
   :root {
     --bg-dark: #1C1C1C;
@@ -101,30 +103,57 @@
   th {
     background: var(--gray-lighter);
   }
+  /* --- Added enhancements start --- */
+  button, .tab, input, select {
+    transition: all 0.2s ease-in-out;
+  }
+  table {
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  }
+  .controls, .table-block {
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+    border-radius: 8px;
+    padding: 15px;
+    background-color: var(--gray-light);
+  }
+  .tab {
+    border-radius: 6px 6px 0 0;
+    background: var(--gray-lighter);
+    padding: 10px 20px;
+  }
+  .tab.active {
+    background: var(--accent);
+    color: var(--white);
+  }
+  table, .controls input, .controls select, .controls button {
+    border-radius: 6px;
+  }
+  .table-wrapper {
+    overflow-x: auto;
+  }
+  /* --- Added enhancements end --- */
   .loader-overlay {
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.6);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 9999;
-  display: none;
-}
-
-.spinner {
-  border: 6px solid #ccc;
-  border-top: 6px solid var(--accent);
-  border-radius: 50%;
-  width: 50px;
-  height: 50px;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-    @media (max-width:600px) {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    display: none;
+  }
+  .spinner {
+    border: 6px solid #ccc;
+    border-top: 6px solid var(--accent);
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    animation: spin 1s linear infinite;
+  }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  @media (max-width:600px) {
     th, td {
       font-size: 0.9em;
     }
@@ -151,7 +180,9 @@
       <button id="impactRefresh">🔄 Refresh</button>
       <button id="incidentExport">📥 Export CSV</button>
     </div>
-    <table id="incidentTable"><thead></thead><tbody></tbody></table>
+    <div class="table-wrapper">
+      <table id="incidentTable"><thead></thead><tbody></tbody></table>
+    </div>
   </div>
 
   <!-- Man Hours -->
@@ -160,7 +191,9 @@
       <button id="manHoursRefresh">🔄 Refresh Man Hours</button>
       <button id="manHoursExport">📥 Export CSV</button>
     </div>
-    <table id="manHoursTable"><thead></thead><tbody></tbody></table>
+    <div class="table-wrapper">
+      <table id="manHoursTable"><thead></thead><tbody></tbody></table>
+    </div>
   </div>
 
   <!-- TRIR & LTIR -->
@@ -169,7 +202,9 @@
     <button id="ratesRefresh">🔄 Refresh Rates</button>
     <button id="ratesExport">📥 Export CSV</button>
   </div>
-  <table id="ratesTable"><thead></thead><tbody></tbody></table>
+  <div class="table-wrapper">
+    <table id="ratesTable"><thead></thead><tbody></tbody></table>
+  </div>
 </div>
 
 
@@ -183,8 +218,8 @@
   
   <!-- Loader -->
   <div id="loader" class="loader-overlay">
-  <div class="spinner"></div>
-</div>
+    <div class="spinner"></div>
+  </div>
 
 
   <script>
@@ -210,10 +245,12 @@
   document.getElementById('incidentExport').addEventListener('click', () => exportCSV('incidents.csv', fullIncidentData));
 
   function initIncidents() {
+    toggleLoader(true);
     fetchSheet('Master Sheet', data => {
       fullIncidentData = data;
       populateIncidentFilters();
       applyIncidentFilters(); 
+      toggleLoader(false);
     });
   }
 
@@ -260,9 +297,11 @@
   document.getElementById('manHoursExport').addEventListener('click', () => exportCSV('man-hours.csv', fullManHoursData));
 
   function initManHours() {
+    toggleLoader(true);
     fetchSheet('MAN HOURS', data => {
       fullManHoursData = data;
       renderTable('manHoursTable', data);
+      toggleLoader(false);
     });
   }
 
@@ -271,9 +310,11 @@
   document.getElementById('ratesExport').addEventListener('click', () => exportCSV('trir-ltir.csv', fullRatesData));
 
   function initRates() {
+    toggleLoader(true);
     fetchSheet('TRIR & LTIR', data => {
       fullRatesData = data;
       renderTable('ratesTable', data);
+      toggleLoader(false);
     });
   }
 
@@ -281,6 +322,7 @@
   document.getElementById('summaryRefresh').addEventListener('click', initSummary);
 
   function initSummary() {
+    toggleLoader(true);
     Papa.parse(`https://docs.google.com/spreadsheets/d/e/2PACX-1vQUvMV4tvUHnxdhRaAAmmdUpGIcNC4W4MAkbz1kOdXxtsE5813CGN-xiHyYdbmspRoRrWlCzeT6CIq2/pub?gid=566656137&single=true&output=csv`, {
       download: true, header: false, skipEmptyLines: false,
       complete: res => {
@@ -292,8 +334,9 @@
         });
         if(block.length) tables.push(block);
         renderSummary(tables);
+        toggleLoader(false);
       },
-      error: err=>alert('Summary load error: '+err)
+      error: err=>{ alert('Summary load error: '+err); toggleLoader(false); }
     });
   }
 
@@ -357,8 +400,8 @@
   }
     
   // Show / Hide Logic
-    function toggleLoader(show = true) {
-  document.getElementById('loader').style.display = show ? 'flex' : 'none';
+  function toggleLoader(show = true) {
+    document.getElementById('loader').style.display = show ? 'flex' : 'none';
   }
 
   // Sorting for Incident Table
