@@ -235,6 +235,8 @@
     <div class="tab" data-tab="incidentRates">📈 Incident Rates</div>
     <div class="tab" data-tab="summary">📑 Summary Tables</div>
     <div class="tab" data-tab="charts">🧩 Utilization</div>
+    <div class="tab" data-tab="disciplinary">📓 Disciplinary Log</div>
+
     </div>
   
 <!-- Start of charts tab content -->
@@ -250,7 +252,6 @@
     <iframe src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQUvMV4tvUHnxdhRaAAmmdUpGIcNC4W4MAkbz1kOdXxtsE5813CGN-xiHyYdbmspRoRrWlCzeT6CIq2/pubchart?oid=1892770215&format=interactive" style="width:100%; height: 420px; border: none;"></iframe>
   </div>  
 </div>
-  
 
 
   <!-- Incident Table -->
@@ -289,6 +290,18 @@
       <table id="ratesTable"><thead></thead><tbody></tbody></table>
     </div>
   </div>
+
+  <!-- Disciplinary -->
+  <div id="disciplinary" class="tab-content">
+  <div class="controls">
+    <button id="disciplinaryRefresh">🔄 Refresh Disciplinary Log</button>
+    <button id="disciplinaryExport">📥 Export CSV</button>
+  </div>
+  <div class="table-wrapper">
+    <table id="disciplinaryTable"><thead></thead><tbody></tbody></table>
+  </div>
+</div>
+
 
   <!-- Summary -->
   <div id="summary" class="tab-content">
@@ -463,6 +476,20 @@ function renderTable(tableId, data) {
   });
 }
 
+let fullDisciplinaryData = [];
+
+document.getElementById('disciplinaryRefresh').addEventListener('click', initDisciplinary);
+document.getElementById('disciplinaryExport').addEventListener('click', () => exportCSV('disciplinary.csv', fullDisciplinaryData));
+
+function initDisciplinary() {
+  toggleLoader(true);
+  fetchSheet('DISCIPLINARY', data => {
+    fullDisciplinaryData = data;
+    renderTable('disciplinaryTable', data);
+    toggleLoader(false);
+  });
+}
+
 function exportCSV(fn,data){
   if(!data.length)return;
   const hdr=Object.keys(data[0]).join(','),
@@ -500,6 +527,7 @@ window.onload = () => {
   initManHours();
   initSummary();
   initRates();
+  initDisciplinary();
 }
 </script>
 
