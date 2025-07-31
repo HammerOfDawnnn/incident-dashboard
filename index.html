@@ -320,7 +320,8 @@
 <script>
 const SHEET_ID = '1iMo8gWO3z9UW3f_qInMJ2z5k9h1XiRhGrkLlAZWI-n4';
 const API_KEY = 'AIzaSyDWcMK3AUseaJT5r3c031n0bSiqpxaz4bo';
-let fullIncidentData = [], fullManHoursData = [], fullRatesData = [];
+let fullIncidentData = [], fullManHoursData = [], fullRatesData = [], fullSummaryData = [];
+
 
 document.querySelectorAll('.tab').forEach(tab => {
   tab.addEventListener('click', () => {
@@ -410,6 +411,14 @@ function initRates() {
 }
 
 document.getElementById('summaryRefresh').addEventListener('click', initSummary);
+document.getElementById('summaryExport').addEventListener('click', () => {
+  if (!fullSummaryData.length) return alert("No summary data to export");
+  const blob = new Blob([Papa.unparse(fullSummaryData)], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'summary.csv';
+  a.click();
+});
 
 function initSummary() {
   toggleLoader(true);
@@ -423,6 +432,15 @@ function initSummary() {
         else if(block.length){tables.push(block); block=[];}
       });
       if(block.length) tables.push(block);
+      fullSummaryData = tables.flatMap(tbl => {
+  const headers = tbl[0];
+  return tbl.slice(1).map(row => {
+    const obj = {};
+    headers.forEach((h, i) => obj[h] = row[i] || '');
+    return obj;
+  });
+});
+
       renderSummary(tables);
       toggleLoader(false);
     },
